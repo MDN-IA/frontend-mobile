@@ -1,4 +1,4 @@
-package com.example.iot_mobile
+package com.example.iot_mobile.ui.main
 
 import android.os.Bundle
 import android.view.Menu
@@ -11,6 +11,7 @@ import androidx.navigation.ui.setupActionBarWithNavController
 import androidx.navigation.ui.setupWithNavController
 import androidx.drawerlayout.widget.DrawerLayout
 import androidx.appcompat.app.AppCompatActivity
+import com.example.iot_mobile.R
 import com.example.iot_mobile.databinding.ActivityMainBinding
 
 class MainActivity : AppCompatActivity() {
