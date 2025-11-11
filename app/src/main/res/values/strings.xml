@@ -10,4 +10,7 @@
     <string name="menu_home">Home</string>
     <string name="menu_gallery">Gallery</string>
     <string name="menu_slideshow">Slideshow</string>
+    <string name="rooms_map">Rooms Map</string>
+    <string name="my_profile">My profile</string>
+    <string name="logout">Logout</string>
 </resources>

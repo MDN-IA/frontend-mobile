@@ -1,59 +1,134 @@
 package com.example.iot_mobile.ui.main
 
 import android.os.Bundle
-import android.view.Menu
-import com.google.android.material.snackbar.Snackbar
-import com.google.android.material.navigation.NavigationView
-import androidx.navigation.findNavController
-import androidx.navigation.ui.AppBarConfiguration
-import androidx.navigation.ui.navigateUp
-import androidx.navigation.ui.setupActionBarWithNavController
-import androidx.navigation.ui.setupWithNavController
-import androidx.drawerlayout.widget.DrawerLayout
-import androidx.appcompat.app.AppCompatActivity
-import com.example.iot_mobile.R
-import com.example.iot_mobile.databinding.ActivityMainBinding
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import androidx.navigation.compose.rememberNavController
+import com.example.iot_mobile.ui.navigation.AppNavigator
+import com.example.iot_mobile.ui.navigation.NavigationRoutes
+import com.example.iot_mobile.ui.theme.IOTMobileTheme
+import kotlinx.coroutines.launch
 
-class MainActivity : AppCompatActivity() {
-
-    private lateinit var appBarConfiguration: AppBarConfiguration
-    private lateinit var binding: ActivityMainBinding
+class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        binding = ActivityMainBinding.inflate(layoutInflater)
-        setContentView(binding.root)
-
-        setSupportActionBar(binding.appBarMain.toolbar)
-
-        binding.appBarMain.fab.setOnClickListener { view ->
-            Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                .setAction("Action", null)
-                .setAnchorView(R.id.fab).show()
+        setContent {
+            IOTMobileTheme {
+                MainScreen()
+            }
         }
-        val drawerLayout: DrawerLayout = binding.drawerLayout
-        val navView: NavigationView = binding.navView
-        val navController = findNavController(R.id.nav_host_fragment_content_main)
-        // Passing each menu ID as a set of Ids because each
-        // menu should be considered as top level destinations.
-        appBarConfiguration = AppBarConfiguration(
-            setOf(
-                R.id.nav_home, R.id.nav_gallery, R.id.nav_slideshow
-            ), drawerLayout
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun MainScreen() {
+    val navController = rememberNavController()
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
+
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        drawerContent = {
+            DrawerContent(
+                onNavigate = { route ->
+                    scope.launch {
+                        drawerState.close()
+                        navController.navigate(route)
+                    }
+                },
+                onLogout = {
+                    scope.launch {
+                        drawerState.close()
+                        // Aquí implementarás la lógica de logout
+                    }
+                }
+            )
+        }
+    ) {
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = { Text("Rooms Map") },
+                    navigationIcon = {
+                        IconButton(onClick = {
+                            scope.launch {
+                                drawerState.open()
+                            }
+                        }) {
+                            Icon(
+                                imageVector = Icons.Default.Menu,
+                                contentDescription = "Menu"
+                            )
+                        }
+                    }
+                )
+            }
+        ) { paddingValues ->
+            Box(modifier = Modifier.padding(paddingValues)) {
+                AppNavigator(navController = navController)
+            }
+        }
+    }
+}
+
+@Composable
+fun DrawerContent(
+    onNavigate: (String) -> Unit,
+    onLogout: () -> Unit
+) {
+    ModalDrawerSheet {
+        // Header del drawer
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(200.dp)
+                .padding(16.dp)
+        ) {
+            Column {
+                Text(
+                    text = "IOT Mobile",
+                    style = MaterialTheme.typography.headlineMedium
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "usuario@ejemplo.com",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+        }
+
+        HorizontalDivider()
+
+        // Opciones del menú
+        NavigationDrawerItem(
+            icon = { Icon(Icons.Default.Home, contentDescription = null) },
+            label = { Text("Rooms Map") },
+            selected = false,
+            onClick = { onNavigate(NavigationRoutes.MAP) }
         )
-        setupActionBarWithNavController(navController, appBarConfiguration)
-        navView.setupWithNavController(navController)
-    }
 
-    override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        menuInflater.inflate(R.menu.main, menu)
-        return true
-    }
+        NavigationDrawerItem(
+            icon = { Icon(Icons.Default.Person, contentDescription = null) },
+            label = { Text("My Profile") },
+            selected = false,
+            onClick = { onNavigate(NavigationRoutes.SETTINGS) }
+        )
 
-    override fun onSupportNavigateUp(): Boolean {
-        val navController = findNavController(R.id.nav_host_fragment_content_main)
-        return navController.navigateUp(appBarConfiguration) || super.onSupportNavigateUp()
+        NavigationDrawerItem(
+            icon = { Icon(Icons.Default.Lock, contentDescription = null) },
+            label = { Text("Logout") },
+            selected = false,
+            onClick = { onLogout() }
+        )
     }
 }
