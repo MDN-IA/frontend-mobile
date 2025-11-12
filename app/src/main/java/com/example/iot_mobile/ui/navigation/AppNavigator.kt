@@ -11,7 +11,7 @@ object NavigationRoutes {
     const val REGISTER = "register"
     const val LOGIN = "login"
     const val SETTINGS = "settings"
-    const val MAP = "map"
+    const val PROFILE = "profile"
 }
 
 @Composable
@@ -28,6 +28,7 @@ fun AppNavigator(
         }
 
         composable(NavigationRoutes.REGISTER) {
+            // RegisterScreen(navController)
         }
 
         composable(NavigationRoutes.LOGIN) {
@@ -38,8 +39,8 @@ fun AppNavigator(
             // SettingsScreen(navController)
         }
 
-        composable(NavigationRoutes.MAP) {
-            // MapScreen(navController)
+        composable(NavigationRoutes.PROFILE) {
+            // ProfileScreen(navController)
         }
     }
 }

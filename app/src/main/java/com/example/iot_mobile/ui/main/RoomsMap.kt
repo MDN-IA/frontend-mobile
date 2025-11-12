@@ -17,7 +17,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 
-// Data class para representar una sala
 data class Room(
     val name: String,
     val temperature: Int,
@@ -26,9 +25,7 @@ data class Room(
 )
 
 enum class TemperatureType {
-    COLD,    // <20°C - Blue
-    WARM,    // 20-23°C - Yellow
-    HOT      // >23°C - Orange
+    COLD, WARM, HOT
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -36,7 +33,6 @@ enum class TemperatureType {
 fun MainScreen(navController: NavHostController) {
     var selectedPreference by remember { mutableStateOf("COLD") }
 
-    // Sample data - esto vendría de tu API/backend
     val rooms = remember {
         listOf(
             Room("ROOM A", 18, true, TemperatureType.COLD),
@@ -58,36 +54,36 @@ fun MainScreen(navController: NavHostController) {
         topBar = {
             Surface(
                 modifier = Modifier.fillMaxWidth(),
-                color = Color.White,
-                shadowElevation = 0.5.dp
+                color = Color.White
             ) {
                 Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 16.dp)
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text(
-                        text = "Temperature Preference",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = Color(0xFFBDBDBD),
-                        letterSpacing = 1.sp
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    HorizontalDivider(color = Color(0xFFEEEEEE), thickness = 2.dp)
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp, vertical = 12.dp)
                     ) {
-                        PreferenceChip("COLD", "< 20°C", selectedPreference, Color(0xFF42A5F5)) {
-                            selectedPreference = "COLD"
-                        }
-                        PreferenceChip("WARM", "20-23°C", selectedPreference, Color(0xFFFFB74D)) {
-                            selectedPreference = "WARM"
-                        }
-                        PreferenceChip("HOT", "> 23°C", selectedPreference, Color(0xFFFF7043)) {
-                            selectedPreference = "HOT"
+                        Text(
+                            text = "Temperature Preference",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = Color(0xFFBDBDBD),
+                            letterSpacing = 1.sp
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.Start
+                        ) {
+                            SinglePreferenceChip(
+                                selectedPreference = selectedPreference
+                            )
                         }
                     }
+                    Spacer(modifier = Modifier.height(7.dp))
+                    HorizontalDivider(color = Color(0xFFEEEEEE), thickness = 2.dp)
                 }
             }
         }
@@ -113,34 +109,29 @@ fun MainScreen(navController: NavHostController) {
 }
 
 @Composable
-fun PreferenceChip(
-    text: String,
-    range: String,
-    selectedPreference: String,
-    color: Color,
-    onClick: () -> Unit
+fun SinglePreferenceChip(
+    selectedPreference: String
 ) {
-    val isSelected = selectedPreference == text
+    val (label, range, color) = when (selectedPreference) {
+        "COLD" -> Triple("COLD", "< 20°C", Color(0xFF42A5F5))
+        "WARM" -> Triple("WARM", "20-23°C", Color(0xFFFFB74D))
+        else -> Triple("HOT", "> 23°C", Color(0xFFFF7043))
+    }
 
     Surface(
-        onClick = onClick,
         modifier = Modifier
-            .height(64.dp)
-            .widthIn(min = 100.dp),
+            .height(56.dp)
+            .widthIn(min = 160.dp),
         shape = MaterialTheme.shapes.medium,
-        color = if (isSelected) color.copy(alpha = 0.12f) else Color(0xFFF5F5F5),
-        border = if (isSelected) {
-            androidx.compose.foundation.BorderStroke(2.dp, color)
-        } else {
-            androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE0E0E0))
-        }
+        color = Color.White,
+        border = androidx.compose.foundation.BorderStroke(1.dp, color.copy(alpha = 0.9f)),
+        shadowElevation = 0.dp
     ) {
         Row(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(horizontal = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Start
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
                 modifier = Modifier
@@ -150,10 +141,10 @@ fun PreferenceChip(
             Spacer(modifier = Modifier.width(10.dp))
             Column {
                 Text(
-                    text = text,
-                    fontSize = 13.sp,
-                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
-                    color = if (isSelected) Color.Black else Color(0xFF616161)
+                    text = label,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.Black
                 )
                 Text(
                     text = range,
@@ -164,6 +155,7 @@ fun PreferenceChip(
         }
     }
 }
+
 
 @Composable
 fun RoomCard(room: Room, matchesPreference: Boolean = false) {
@@ -183,8 +175,8 @@ fun RoomCard(room: Room, matchesPreference: Boolean = false) {
         ),
         elevation = CardDefaults.cardElevation(
             defaultElevation = if (matchesPreference && room.isAvailable) 2.dp
-                else if (room.isAvailable) 1.dp
-                else 0.dp
+            else if (room.isAvailable) 1.dp
+            else 0.dp
         ),
         shape = MaterialTheme.shapes.large,
         border = if (matchesPreference && room.isAvailable) {
@@ -196,7 +188,6 @@ fun RoomCard(room: Room, matchesPreference: Boolean = false) {
         Box(
             modifier = Modifier.fillMaxSize()
         ) {
-            // Overlay si no está disponible
             if (!room.isAvailable) {
                 Box(
                     modifier = Modifier
@@ -212,7 +203,6 @@ fun RoomCard(room: Room, matchesPreference: Boolean = false) {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.SpaceBetween
             ) {
-                // Nombre de sala
                 Text(
                     text = room.name,
                     fontSize = 12.sp,
@@ -221,7 +211,6 @@ fun RoomCard(room: Room, matchesPreference: Boolean = false) {
                     letterSpacing = 0.8.sp
                 )
 
-                // Temperatura
                 Row(
                     verticalAlignment = Alignment.Top,
                     horizontalArrangement = Arrangement.Center
@@ -241,7 +230,6 @@ fun RoomCard(room: Room, matchesPreference: Boolean = false) {
                     )
                 }
 
-                // Status compacto
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.Absolute.Right,
