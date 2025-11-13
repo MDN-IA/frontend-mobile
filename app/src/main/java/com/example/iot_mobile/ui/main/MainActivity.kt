@@ -69,13 +69,7 @@ fun MainScreen() {
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = {
-                        Text(
-                            "Library Rooms",
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Medium
-                        )
-                    },
+                    title = {},
                     navigationIcon = {
                         IconButton(
                             onClick = {
@@ -86,7 +80,19 @@ fun MainScreen() {
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Menu,
-                                contentDescription = "Menu"
+                                contentDescription = "Menu",
+                                tint = Color(0xFF616161)
+                            )
+                        }
+                    },
+                    actions = {
+                        IconButton(
+                            onClick = { /* TODO: Implementar notificaciones */ }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Notifications,
+                                contentDescription = "Notifications",
+                                tint = Color(0xFF616161)
                             )
                         }
                     },
@@ -174,7 +180,7 @@ fun DrawerContent(
             icon = Icons.Outlined.Person,
             label = "My Profile",
             isSelected = currentRoute == NavigationRoutes.SETTINGS,
-            onClick = { onNavigate(NavigationRoutes.SETTINGS) }
+            onClick = { onNavigate(NavigationRoutes.PROFILE) }
         )
 
         Spacer(modifier = Modifier.weight(1f))

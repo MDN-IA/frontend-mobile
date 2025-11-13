@@ -1,6 +1,7 @@
 package com.example.iot_mobile.ui.main
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -16,6 +17,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import com.example.iot_mobile.ui.navigation.NavigationRoutes
 
 data class Room(
     val name: String,
@@ -30,7 +32,10 @@ enum class TemperatureType {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainScreen(navController: NavHostController) {
+fun MainScreen(
+    navController: NavHostController,
+    onNavigate: (String) -> Unit = { route -> navController.navigate(route) }
+) {
     var selectedPreference by remember { mutableStateOf("COLD") }
 
     val rooms = remember {
@@ -59,7 +64,6 @@ fun MainScreen(navController: NavHostController) {
                 Column(
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    HorizontalDivider(color = Color(0xFFEEEEEE), thickness = 2.dp)
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -69,7 +73,7 @@ fun MainScreen(navController: NavHostController) {
                             text = "Temperature Preference",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Medium,
-                            color = Color(0xFFBDBDBD),
+                            color = Color(0xFF9E9E9E),
                             letterSpacing = 1.sp
                         )
                         Spacer(modifier = Modifier.height(12.dp))
@@ -83,7 +87,7 @@ fun MainScreen(navController: NavHostController) {
                         }
                     }
                     Spacer(modifier = Modifier.height(7.dp))
-                    HorizontalDivider(color = Color(0xFFEEEEEE), thickness = 2.dp)
+                    HorizontalDivider(color = Color(0xFFEEEEEE), thickness = 1.dp)
                 }
             }
         }
@@ -101,7 +105,8 @@ fun MainScreen(navController: NavHostController) {
             items(rooms) { room ->
                 RoomCard(
                     room = room,
-                    matchesPreference = room.temperatureType.name == selectedPreference
+                    matchesPreference = room.temperatureType.name == selectedPreference,
+                    onClick = { onNavigate(NavigationRoutes.ROOM_DETAILS) }
                 )
             }
         }
@@ -158,7 +163,7 @@ fun SinglePreferenceChip(
 
 
 @Composable
-fun RoomCard(room: Room, matchesPreference: Boolean = false) {
+fun RoomCard(room: Room, matchesPreference: Boolean = false, onClick: () -> Unit = {}) {
     val textColor = if (room.isAvailable) Color.Black else Color(0xFF9E9E9E)
     val temperatureColor = when (room.temperatureType) {
         TemperatureType.COLD -> Color(0xFF42A5F5)
@@ -169,7 +174,8 @@ fun RoomCard(room: Room, matchesPreference: Boolean = false) {
     Card(
         modifier = Modifier
             .aspectRatio(1f)
-            .fillMaxWidth(),
+            .fillMaxWidth()
+            .clickable { onClick() },
         colors = CardDefaults.cardColors(
             containerColor = Color.White
         ),

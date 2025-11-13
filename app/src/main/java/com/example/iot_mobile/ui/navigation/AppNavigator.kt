@@ -5,6 +5,8 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.example.iot_mobile.ui.main.MainScreen
+import com.example.iot_mobile.ui.profile.ProfileScreen
+import com.example.iot_mobile.ui.roomdetails.RoomDetailsScreen
 
 object NavigationRoutes {
     const val MAIN = "main"
@@ -12,6 +14,7 @@ object NavigationRoutes {
     const val LOGIN = "login"
     const val SETTINGS = "settings"
     const val PROFILE = "profile"
+    const val ROOM_DETAILS = "room_details"
 }
 
 @Composable
@@ -40,7 +43,11 @@ fun AppNavigator(
         }
 
         composable(NavigationRoutes.PROFILE) {
-            // ProfileScreen(navController)
+            ProfileScreen(navController)
+        }
+
+        composable(NavigationRoutes.ROOM_DETAILS){
+            RoomDetailsScreen(navController)
         }
     }
 }
