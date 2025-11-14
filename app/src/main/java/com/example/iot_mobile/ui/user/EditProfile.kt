@@ -1,6 +1,8 @@
 package com.example.iot_mobile.ui.profile
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -9,7 +11,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ExitToApp
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.Edit
-import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Person
@@ -18,12 +19,16 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.example.iot_mobile.R
 
 data class UserProfile(
     val name: String,
@@ -65,21 +70,41 @@ fun ProfileScreen(navController: NavController) {
                     .padding(vertical = 16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Avatar
+                // Logo/Icon
                 Box(
                     modifier = Modifier
                         .size(100.dp)
                         .background(
                             color = Color(0xFF42A5F5).copy(alpha = 0.1f),
                             shape = CircleShape
-                        ),
+                        )
+                        .clip(CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Person,
-                        contentDescription = null,
-                        tint = Color(0xFF42A5F5),
-                        modifier = Modifier.size(50.dp)
+                    Image(
+                        painter = painterResource(id = R.drawable.logo),
+                        contentDescription = "App Logo",
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(4.dp)
+                            .clip(CircleShape)
+                            .background(Color.White, CircleShape),
+                        contentScale = ContentScale.Crop
+                    )
+                    // Borde circular
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(2.dp)
+                            .clip(CircleShape)
+                            .background(Color.Transparent)
+                            .then(
+                                Modifier.border(
+                                    width = 2.dp,
+                                    color = Color(0xFF366FAD),
+                                    shape = CircleShape
+                                )
+                            )
                     )
                 }
 
@@ -149,7 +174,7 @@ fun ProfileScreen(navController: NavController) {
                 onClick = { /* Implementar */ }
             )
 
-            Spacer(modifier = Modifier.height(18.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
             // Botón de Logout
             Button(
@@ -157,9 +182,9 @@ fun ProfileScreen(navController: NavController) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp)
-                    .height(48.dp),
+                    .height(40.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFFFA6969)
+                    containerColor = Color(0xFFF56F6F)
                 ),
                 shape = MaterialTheme.shapes.medium
             ) {

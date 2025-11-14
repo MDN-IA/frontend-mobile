@@ -3,7 +3,9 @@ package com.example.iot_mobile.ui.main
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -13,12 +15,17 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.example.iot_mobile.R
 import com.example.iot_mobile.ui.navigation.AppNavigator
 import com.example.iot_mobile.ui.navigation.NavigationRoutes
 import com.example.iot_mobile.ui.theme.IOTMobileTheme
@@ -43,67 +50,82 @@ fun MainScreen() {
     val navController = rememberNavController()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
-    var currentRoute by remember { mutableStateOf(NavigationRoutes.MAIN) }
 
-    ModalNavigationDrawer(
-        drawerState = drawerState,
-        drawerContent = {
-            DrawerContent(
-                currentRoute = currentRoute,
-                onNavigate = { route ->
-                    scope.launch {
-                        drawerState.close()
-                        currentRoute = route
-                        navController.navigate(route)
-                    }
-                },
-                onLogout = {
-                    scope.launch {
-                        drawerState.close()
-                        // Aquí implementarás la lógica de logout
-                    }
-                }
-            )
-        }
-    ) {
-        Scaffold(
-            topBar = {
-                TopAppBar(
-                    title = {},
-                    navigationIcon = {
-                        IconButton(
-                            onClick = {
-                                scope.launch {
-                                    drawerState.open()
-                                }
-                            }
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Menu,
-                                contentDescription = "Menu",
-                                tint = Color(0xFF616161)
-                            )
+    // Observe the navController back stack to derive the current route; esto mantiene el drawer sincronizado
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route ?: NavigationRoutes.MAIN
+
+    // Determinar si debemos mostrar el TopBar y el Drawer
+    val showTopBar = currentRoute !in listOf(NavigationRoutes.LOGIN, NavigationRoutes.REGISTER,
+        NavigationRoutes.ROOM_DETAILS)
+
+    if (showTopBar) {
+        ModalNavigationDrawer(
+            drawerState = drawerState,
+            drawerContent = {
+                DrawerContent(
+                    currentRoute = currentRoute,
+                    onNavigate = { route ->
+                        scope.launch {
+                            drawerState.close()
+                            navController.navigate(route)
                         }
                     },
-                    actions = {
-                        IconButton(
-                            onClick = { /* TODO: Implementar notificaciones */ }
-                        ) {
-                            Icon(
-                                imageVector = Icons.Outlined.Notifications,
-                                contentDescription = "Notifications",
-                                tint = Color(0xFF616161)
-                            )
+                    onLogout = {
+                        scope.launch {
+                            drawerState.close()
+                            // Aquí implementarás la lógica de logout
                         }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = Color.White,
-                        titleContentColor = Color(0xFF212121),
-                        navigationIconContentColor = Color(0xFF616161)
-                    )
+                    }
                 )
             }
-        ) { paddingValues ->
+        ) {
+            Scaffold(
+                topBar = {
+                    TopAppBar(
+                        title = {},
+                        navigationIcon = {
+                            IconButton(
+                                onClick = {
+                                    scope.launch {
+                                        drawerState.open()
+                                    }
+                                }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Menu,
+                                    contentDescription = "Menu",
+                                    tint = Color(0xFF616161)
+                                )
+                            }
+                        },
+                        actions = {
+                            IconButton(
+                                onClick = { /* TODO: Implementar notificaciones */ }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Outlined.Notifications,
+                                    contentDescription = "Notifications",
+                                    tint = Color(0xFF616161)
+                                )
+                            }
+                        },
+                        colors = TopAppBarDefaults.topAppBarColors(
+                            containerColor = Color.White,
+                            titleContentColor = Color(0xFF212121),
+                            navigationIconContentColor = Color(0xFF616161)
+                        )
+                    )
+                }
+            ) { paddingValues ->
+                Box(modifier = Modifier.padding(paddingValues)) {
+                    AppNavigator(navController = navController)
+                }
+            }
+        }
+    } else {
+        // Sin TopBar ni Drawer para pantallas de autenticación
+        Scaffold { paddingValues ->
             Box(modifier = Modifier.padding(paddingValues)) {
                 AppNavigator(navController = navController)
             }
@@ -126,21 +148,41 @@ fun DrawerContent(
                 .fillMaxWidth()
                 .padding(24.dp)
         ) {
-            // Avatar
+            // Logo/Icon
             Box(
                 modifier = Modifier
-                    .size(56.dp)
+                    .size(58.dp)
                     .background(
                         color = Color(0xFF42A5F5).copy(alpha = 0.1f),
                         shape = CircleShape
-                    ),
+                    )
+                    .clip(CircleShape),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    imageVector = Icons.Default.Person,
-                    contentDescription = null,
-                    tint = Color(0xFF42A5F5),
-                    modifier = Modifier.size(28.dp)
+                Image(
+                    painter = painterResource(id = R.drawable.logo),
+                    contentDescription = "App Logo",
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(4.dp)
+                        .clip(CircleShape)
+                        .background(Color.White, CircleShape),
+                    contentScale = ContentScale.Crop
+                )
+                // Borde circular
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(2.dp)
+                        .clip(CircleShape)
+                        .background(Color.Transparent)
+                        .then(
+                            Modifier.border(
+                                width = 2.dp,
+                                color = Color(0xFF366FAD),
+                                shape = CircleShape
+                            )
+                        )
                 )
             }
 
@@ -161,7 +203,7 @@ fun DrawerContent(
             )
         }
 
-        Divider(
+        HorizontalDivider(
             color = Color(0xFFF0F0F0),
             thickness = 1.dp
         )
@@ -179,13 +221,13 @@ fun DrawerContent(
         MinimalMenuItem(
             icon = Icons.Outlined.Person,
             label = "My Profile",
-            isSelected = currentRoute == NavigationRoutes.SETTINGS,
+            isSelected = currentRoute == NavigationRoutes.PROFILE,
             onClick = { onNavigate(NavigationRoutes.PROFILE) }
         )
 
         Spacer(modifier = Modifier.weight(1f))
 
-        Divider(
+        HorizontalDivider(
             color = Color(0xFFF0F0F0),
             thickness = 1.dp
         )
@@ -194,7 +236,7 @@ fun DrawerContent(
             icon = Icons.Outlined.ExitToApp,
             label = "Logout",
             isSelected = false,
-            onClick = { onLogout() },
+            onClick = { onNavigate(NavigationRoutes.LOGIN) },
             isDestructive = true
         )
 
@@ -245,15 +287,14 @@ fun MinimalMenuItem(
                 imageVector = icon,
                 contentDescription = null,
                 tint = iconColor,
-                modifier = Modifier.size(22.dp)
+                modifier = Modifier.size(20.dp)
             )
 
-            Spacer(modifier = Modifier.width(16.dp))
+            Spacer(modifier = Modifier.width(12.dp))
 
             Text(
                 text = label,
-                fontSize = 14.sp,
-                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                fontSize = 15.sp,
                 color = textColor
             )
         }
