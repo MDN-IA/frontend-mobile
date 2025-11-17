@@ -62,7 +62,7 @@ fun ProfileScreen(navController: NavController) {
             .background(Color(0xFFFAFAFA))
             .verticalScroll(rememberScrollState())
     ) {
-            // Header con avatar
+            // Header
             Column(
                 modifier = Modifier
                     .fillMaxWidth()

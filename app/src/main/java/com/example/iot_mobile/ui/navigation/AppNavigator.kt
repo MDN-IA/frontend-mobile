@@ -2,8 +2,10 @@ package com.example.iot_mobile.ui.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
 import com.example.iot_mobile.ui.auth.LoginScreen
 import com.example.iot_mobile.ui.auth.RegisterScreen
 import com.example.iot_mobile.ui.main.MainScreen
@@ -15,7 +17,11 @@ object NavigationRoutes {
     const val REGISTER = "register"
     const val LOGIN = "login"
     const val PROFILE = "profile"
-    const val ROOM_DETAILS = "room_details"
+    const val ROOM_DETAILS = "room_details/{roomId}"
+
+    fun roomDetails(roomId: Int): String {
+        return "room_details/$roomId"
+    }
 }
 
 @Composable
@@ -43,8 +49,14 @@ fun AppNavigator(
             ProfileScreen(navController)
         }
 
-        composable(NavigationRoutes.ROOM_DETAILS){
-            RoomDetailsScreen(navController)
+        composable(
+            route = NavigationRoutes.ROOM_DETAILS,
+            arguments = listOf(
+                navArgument("roomId") { type = NavType.IntType }
+            )
+        ) { backStackEntry ->
+            val roomId = backStackEntry.arguments?.getInt("roomId") ?: 0
+            RoomDetailsScreen(navController = navController, roomId = roomId)
         }
     }
 }

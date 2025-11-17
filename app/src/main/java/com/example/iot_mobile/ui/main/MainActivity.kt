@@ -210,7 +210,7 @@ fun DrawerContent(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Menu items minimalistas
+        // Menu items
         MinimalMenuItem(
             icon = Icons.Outlined.Home,
             label = "Library Rooms",
