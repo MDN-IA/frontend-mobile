@@ -50,7 +50,7 @@ fun RoomDetailsScreen(
                 errorMessage = null
 
                 try {
-                    val response = ApiClient.getRoomById(roomId)
+                    val response = ApiClient.getRoomById(roomId) //
 
                     response?.let {
                         val jsonObject = JSONObject(it)

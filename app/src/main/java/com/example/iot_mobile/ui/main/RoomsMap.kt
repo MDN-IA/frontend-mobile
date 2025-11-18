@@ -94,7 +94,7 @@ fun MainScreen(
                             val jsonObject = jsonArray.getJSONObject(i)
                             val temperature = jsonObject.optDouble("temp", 0.0).toFloat()
                             val light = jsonObject.optDouble("light", 0.0).toFloat()
-                            val humidity = jsonObject.optDouble("hum", 0.0).toFloat()
+                            val humidity = jsonObject.optDouble("hum", 0.0).toFloat() //
 
                             fetchedRooms.add(
                                 Room(
