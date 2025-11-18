@@ -1,5 +1,6 @@
 package com.example.iot_mobile.ui.main
 
+import android.se.omapi.Session
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -13,12 +14,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.example.iot_mobile.network.ApiClient
 import com.example.iot_mobile.ui.navigation.NavigationRoutes
+import com.example.iot_mobile.utils.SessionManager
 import kotlinx.coroutines.launch
 import org.json.JSONArray
 
@@ -66,7 +69,9 @@ fun MainScreen(
     navController: NavHostController,
     onNavigate: (String) -> Unit = { route -> navController.navigate(route) }
 ) {
-    var selectedPreference by remember { mutableStateOf("WARM") }
+    val context = LocalContext.current
+    val sessionManager = remember { SessionManager(context) }
+    var selectedPreference = sessionManager.getTempPreference() ?: "COLD"
     var rooms by remember { mutableStateOf<List<Room>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }

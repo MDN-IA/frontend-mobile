@@ -112,6 +112,60 @@ object ApiClient {
     }
 
     /**
+     * Método para crear un nuevo usuario (registro).
+     * @param nombre Nombre completo del usuario
+     * @param correo Correo electrónico del usuario
+     * @param contrasena Contraseña del usuario
+     * @param preferenciaTemperatura Preferencia de temperatura (COLD, WARM, HOT)
+     * @return Respuesta en formato JSON con los datos del usuario creado o `null` si hay error.
+     */
+    suspend fun createUser(
+        nombre: String,
+        correo: String,
+        contrasena: String,
+        preferenciaTemperatura: String
+    ): String? = withContext(Dispatchers.IO) {
+        try {
+            val jsonBody = JSONObject().apply {
+                put("nombre", nombre)
+                put("correo", correo)
+                put("contrasena", contrasena)
+                put("preferenciaTemperatura", preferenciaTemperatura)
+                put("esAdmin", false)
+            }
+
+            val url = URL("$BASE_URL/users")
+            val connection = url.openConnection() as HttpURLConnection
+            connection.requestMethod = "POST"
+            connection.setRequestProperty("Content-Type", "application/json")
+            connection.doOutput = true
+
+            // Escribir el cuerpo de la petición
+            connection.outputStream.use { os ->
+                os.write(jsonBody.toString().toByteArray())
+                os.flush()
+            }
+
+            val responseCode = connection.responseCode
+            Log.d("ApiClient", "CreateUser - Código de respuesta: $responseCode")
+
+            return@withContext if (responseCode == HttpURLConnection.HTTP_CREATED) {
+                val response = connection.inputStream.bufferedReader().use { it.readText() }
+                Log.d("ApiClient", "Usuario creado exitosamente: $response")
+                response
+            } else {
+                val errorResponse = connection.errorStream?.bufferedReader()?.use { it.readText() }
+                Log.e("ApiClient", "Error al crear usuario: código $responseCode - $errorResponse")
+                errorResponse // Retornar el mensaje de error para poder mostrarlo
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Log.e("ApiClient", "Error al conectar con el backend en createUser: ${e.message}")
+            null
+        }
+    }
+
+    /**
      * Método para realizar login de usuario.
      * @param correo Correo electrónico del usuario
      * @param contrasena Contraseña del usuario
@@ -151,6 +205,76 @@ object ApiClient {
         } catch (e: Exception) {
             e.printStackTrace()
             Log.e("ApiClient", "Error al conectar con el backend en login: ${e.message}")
+            null
+        }
+    }
+
+    /**
+     * Método para actualizar un usuario.
+     * @param userId ID del usuario
+     * @param updateData Datos a actualizar (puede incluir nombre, correo, preferenciaTemperatura, etc.)
+     * @return Respuesta en formato JSON con los datos actualizados o `null` si hay error.
+     */
+    suspend fun updateUser(userId: Int, updateData: JSONObject): String? = withContext(Dispatchers.IO) {
+        try {
+            val url = URL("$BASE_URL/users/$userId")
+            val connection = url.openConnection() as HttpURLConnection
+            connection.requestMethod = "PUT"
+            connection.setRequestProperty("Content-Type", "application/json")
+            connection.doOutput = true
+
+            // Escribir el cuerpo de la petición
+            connection.outputStream.use { os ->
+                os.write(updateData.toString().toByteArray())
+                os.flush()
+            }
+
+            val responseCode = connection.responseCode
+            Log.d("ApiClient", "UpdateUser - Código de respuesta: $responseCode")
+
+            return@withContext if (responseCode == HttpURLConnection.HTTP_OK) {
+                val response = connection.inputStream.bufferedReader().use { it.readText() }
+                Log.d("ApiClient", "Usuario actualizado exitosamente: $response")
+                response
+            } else {
+                val errorResponse = connection.errorStream?.bufferedReader()?.use { it.readText() }
+                Log.e("ApiClient", "Error al actualizar usuario: código $responseCode - $errorResponse")
+                null
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Log.e("ApiClient", "Error al conectar con el backend en updateUser: ${e.message}")
+            null
+        }
+    }
+
+    /**
+     * Método para eliminar un usuario.
+     * @param userId ID del usuario a eliminar
+     * @return Respuesta en formato JSON con el mensaje de confirmación o `null` si hay error.
+     */
+    suspend fun deleteUser(userId: Int): String? = withContext(Dispatchers.IO) {
+        try {
+            val url = URL("$BASE_URL/users/$userId")
+            val connection = url.openConnection() as HttpURLConnection
+            connection.requestMethod = "DELETE"
+            connection.setRequestProperty("Accept", "application/json")
+
+            val responseCode = connection.responseCode
+            Log.d("ApiClient", "DeleteUser - Código de respuesta: $responseCode")
+
+            return@withContext if (responseCode == HttpURLConnection.HTTP_OK) {
+                val response = connection.inputStream.bufferedReader().use { it.readText() }
+                Log.d("ApiClient", "Usuario eliminado exitosamente: $response")
+                response
+            } else {
+                val errorResponse = connection.errorStream?.bufferedReader()?.use { it.readText() }
+                Log.e("ApiClient", "Error al eliminar usuario: código $responseCode - $errorResponse")
+                null
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Log.e("ApiClient", "Error al conectar con el backend en deleteUser: ${e.message}")
             null
         }
     }

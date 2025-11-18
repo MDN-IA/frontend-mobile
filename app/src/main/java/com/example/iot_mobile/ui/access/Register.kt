@@ -1,5 +1,6 @@
 package com.example.iot_mobile.ui.auth
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -15,6 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -24,10 +26,20 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import com.example.iot_mobile.network.ApiClient
+import com.example.iot_mobile.ui.navigation.NavigationRoutes
+import com.example.iot_mobile.utils.SessionManager
+import kotlinx.coroutines.launch
+import org.json.JSONObject
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegisterScreen(navController: NavController) {
+    val context = LocalContext.current
+    val sessionManager = remember { SessionManager(context) }
+    val coroutineScope = rememberCoroutineScope()
+    val focusManager = LocalFocusManager.current
+
     var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -38,7 +50,6 @@ fun RegisterScreen(navController: NavController) {
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
-    val focusManager = LocalFocusManager.current
 
     Column(
         modifier = Modifier
@@ -307,9 +318,15 @@ fun RegisterScreen(navController: NavController) {
             // Sign Up Button
             Button(
                 onClick = {
+                    // Validar formato de email: debe contener @ y al menos un punto después del @
+                    val emailPattern = "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$".toRegex()
+
                     when {
                         name.isBlank() || email.isBlank() || password.isBlank() || confirmPassword.isBlank() -> {
                             errorMessage = "Please fill in all fields"
+                        }
+                        !emailPattern.matches(email.trim()) -> {
+                            errorMessage = "Please enter a valid email (example@domain.com)"
                         }
                         password.length < 6 -> {
                             errorMessage = "Password must be at least 6 characters"
@@ -317,13 +334,74 @@ fun RegisterScreen(navController: NavController) {
                         password != confirmPassword -> {
                             errorMessage = "Passwords do not match"
                         }
-                        !email.contains("@") -> {
-                            errorMessage = "Please enter a valid email"
-                        }
                         else -> {
                             isLoading = true
-                            // Aquí implementarías la lógica de registro
-                            // navController.navigate(NavigationRoutes.MAP)
+                            errorMessage = null
+
+                            coroutineScope.launch {
+                                try {
+                                    val response = ApiClient.createUser(
+                                        nombre = name.trim(),
+                                        correo = email.trim().lowercase(),
+                                        contrasena = password,
+                                        preferenciaTemperatura = selectedPreference
+                                    )
+
+                                    if (response != null) {
+                                        try {
+                                            val jsonResponse = JSONObject(response)
+
+                                            // Verificar si hay un error en la respuesta
+                                            if (jsonResponse.has("error")) {
+                                                val error = jsonResponse.getString("error")
+                                                errorMessage = when {
+                                                    error.contains("correo") || error.contains("registrado") ->
+                                                        "Email already registered"
+                                                    error.contains("campos requeridos") ->
+                                                        "Please fill in all required fields"
+                                                    else -> error
+                                                }
+                                                isLoading = false
+                                                return@launch
+                                            }
+
+                                            // Si el registro fue exitoso, extraer datos del usuario
+                                            val userId = jsonResponse.getInt("id")
+                                            val userName = jsonResponse.getString("nombre")
+                                            val userEmail = jsonResponse.getString("correo")
+                                            val tempPref = jsonResponse.optString("preferenciaTemperatura", "COLD")
+                                            val isAdmin = jsonResponse.optBoolean("esAdmin", false)
+
+                                            // Guardar la sesión
+                                            sessionManager.saveLoginSession(
+                                                userId = userId,
+                                                userName = userName,
+                                                userEmail = userEmail,
+                                                tempPreference = tempPref,
+                                                isAdmin = isAdmin
+                                            )
+
+                                            Log.d("RegisterScreen", "Usuario registrado exitosamente: $userName")
+
+                                            // Navegar a la pantalla principal
+                                            navController.navigate(NavigationRoutes.MAIN) {
+                                                popUpTo(NavigationRoutes.LOGIN) { inclusive = true }
+                                            }
+                                        } catch (e: Exception) {
+                                            Log.e("RegisterScreen", "Error procesando respuesta: ${e.message}")
+                                            errorMessage = "Error processing registration data"
+                                            isLoading = false
+                                        }
+                                    } else {
+                                        errorMessage = "Connection error. Please try again."
+                                        isLoading = false
+                                    }
+                                } catch (e: Exception) {
+                                    Log.e("RegisterScreen", "Error en registro: ${e.message}")
+                                    errorMessage = "An error occurred. Please try again."
+                                    isLoading = false
+                                }
+                            }
                         }
                     }
                 },

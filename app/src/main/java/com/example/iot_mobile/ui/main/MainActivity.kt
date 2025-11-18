@@ -209,7 +209,7 @@ fun MainScreen() {
                             )
 
                             Text(
-                                text = "Logging out",
+                                text = "Logging out ...",
                                 fontSize = 12.sp,
                                 color = Color(0xFF757575),
                                 fontWeight = FontWeight.Normal,

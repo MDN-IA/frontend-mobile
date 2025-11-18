@@ -51,6 +51,10 @@ class SessionManager(context: Context) {
 
     fun isAdmin(): Boolean = prefs.getBoolean(KEY_IS_ADMIN, false)
 
+    fun updateTempPreference(tempPreference: String) {
+        prefs.edit().putString(KEY_USER_TEMP_PREFERENCE, tempPreference).apply()
+    }
+
     fun clearSession() {
         prefs.edit().clear().apply()
     }
