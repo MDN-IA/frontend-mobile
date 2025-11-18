@@ -26,11 +26,13 @@ object NavigationRoutes {
 
 @Composable
 fun AppNavigator(
-    navController: NavHostController
+    navController: NavHostController,
+    startDestination: String = NavigationRoutes.LOGIN,
+    onLogout: () -> Unit = {}
 ) {
     NavHost(
         navController = navController,
-        startDestination = NavigationRoutes.MAIN
+        startDestination = startDestination
     ) {
 
         composable(NavigationRoutes.MAIN) {
@@ -46,7 +48,7 @@ fun AppNavigator(
         }
 
         composable(NavigationRoutes.PROFILE) {
-            ProfileScreen(navController)
+            ProfileScreen(navController = navController, onLogout = onLogout)
         }
 
         composable(

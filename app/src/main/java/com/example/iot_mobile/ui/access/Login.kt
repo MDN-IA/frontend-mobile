@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -33,15 +34,24 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.iot_mobile.R
 import com.example.iot_mobile.ui.navigation.NavigationRoutes
+import com.example.iot_mobile.network.ApiClient
+import com.example.iot_mobile.utils.SessionManager
+import kotlinx.coroutines.launch
+import org.json.JSONObject
+import android.util.Log
 
 @Composable
 fun LoginScreen(navController: NavController) {
+    val context = LocalContext.current
+    val sessionManager = remember { SessionManager(context) }
+
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
+    val coroutineScope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current
 
     Box(
@@ -187,6 +197,58 @@ fun LoginScreen(navController: NavController) {
                     onDone = {
                         focusManager.clearFocus()
                         // Trigger login
+                        if (email.isNotBlank() && password.isNotBlank() && !isLoading) {
+                            isLoading = true
+                            errorMessage = null
+
+                            coroutineScope.launch {
+                                try {
+                                    val response = ApiClient.login(email, password, "/users/login")
+
+                                    if (response != null) {
+                                        val jsonResponse = JSONObject(response)
+
+                                        if (jsonResponse.has("user")) {
+                                            val user = jsonResponse.getJSONObject("user")
+                                            val userId = user.getInt("id")
+                                            val userName = user.getString("nombre")
+                                            val userEmail = user.getString("correo")
+                                            val userTemp = if (user.has("preferenciaTemperatura") && !user.isNull("preferenciaTemperatura")) {
+                                                user.getString("preferenciaTemperatura")
+                                            } else {
+                                                null
+                                            }
+                                            val isAdmin = user.getBoolean("esAdmin")
+
+                                            Log.d("LoginScreen", "Login exitoso: $userName (Admin: $isAdmin, Temp: $userTemp)")
+
+                                            // Guardar la sesión
+                                            sessionManager.saveLoginSession(
+                                                userId = userId,
+                                                userName = userName,
+                                                userEmail = userEmail,
+                                                tempPreference = userTemp,
+                                                isAdmin = isAdmin
+                                            )
+
+                                            navController.navigate(NavigationRoutes.MAIN) {
+                                                popUpTo(NavigationRoutes.LOGIN) { inclusive = true }
+                                            }
+                                        } else if (jsonResponse.has("error")) {
+                                            errorMessage = jsonResponse.getString("error")
+                                        } else {
+                                            errorMessage = "Unexpected response from server"
+                                        }
+                                    } else {
+                                        errorMessage = "Unable to connect to server"
+                                    }
+                                } catch (e: Exception) {
+                                    errorMessage = "An error occurred: ${e.message}"
+                                } finally {
+                                    isLoading = false
+                                }
+                            }
+                        }
                     }
                 ),
                 colors = OutlinedTextFieldDefaults.colors(
@@ -233,9 +295,63 @@ fun LoginScreen(navController: NavController) {
                         errorMessage = "Please fill in all fields"
                     } else {
                         isLoading = true
-                        // Aquí implementarías la lógica de login
-                        // Por ahora, simulamos éxito después de 1 segundo
-                        // navController.navigate(NavigationRoutes.MAP)
+                        errorMessage = null
+
+                        coroutineScope.launch {
+                            try {
+                                val response = ApiClient.login(email, password, "/users/login")
+
+                                if (response != null) {
+                                    val jsonResponse = JSONObject(response)
+
+                                    // Verificar si el login fue exitoso
+                                    if (jsonResponse.has("user")) {
+                                        val user = jsonResponse.getJSONObject("user")
+                                        val userId = user.getInt("id")
+                                        val userName = user.getString("nombre")
+                                        val userEmail = user.getString("correo")
+                                        val userTemp = if (user.has("preferenciaTemperatura") && !user.isNull("preferenciaTemperatura")) {
+                                            user.getString("preferenciaTemperatura")
+                                        } else {
+                                            null
+                                        }
+                                        val isAdmin = user.getBoolean("esAdmin")
+
+                                        Log.d("LoginScreen", "Login exitoso: $userName (Admin: $isAdmin, Temp: $userTemp)")
+
+                                        // Guardar la sesión
+                                        sessionManager.saveLoginSession(
+                                            userId = userId,
+                                            userName = userName,
+                                            userEmail = userEmail,
+                                            tempPreference = userTemp,
+                                            isAdmin = isAdmin
+                                        )
+
+                                        // Navegar a la pantalla principal
+                                        navController.navigate(NavigationRoutes.MAIN) {
+                                            // Limpiar el back stack para que no pueda volver al login
+                                            popUpTo(NavigationRoutes.LOGIN) { inclusive = true }
+                                        }
+                                    } else if (jsonResponse.has("error")) {
+                                        errorMessage = jsonResponse.getString("error")
+                                        Log.e("LoginScreen", "Error en login: $errorMessage")
+                                    } else {
+                                        errorMessage = "Unexpected response from server"
+                                        Log.e("LoginScreen", "Respuesta inesperada: $response")
+                                    }
+                                } else {
+                                    errorMessage = "Please, fill correctly your credentials"
+                                    Log.e("LoginScreen", "No se pudo conectar con el servidor")
+                                }
+
+                            } catch (e: Exception) {
+                                errorMessage = "An error occurred: ${e.message}"
+                                Log.e("LoginScreen", "Excepción en login", e)
+                            } finally {
+                                isLoading = false
+                            }
+                        }
                     }
                 },
                 modifier = Modifier

@@ -12,8 +12,6 @@ import androidx.compose.material.icons.automirrored.outlined.ExitToApp
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Lock
-import androidx.compose.material.icons.outlined.Notifications
-import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -23,12 +21,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.iot_mobile.R
+import com.example.iot_mobile.utils.SessionManager
 
 data class UserProfile(
     val name: String,
@@ -40,13 +40,20 @@ data class UserProfile(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProfileScreen(navController: NavController) {
+fun ProfileScreen(navController: NavController, onLogout: () -> Unit = {}) {
+    val context = LocalContext.current
+    val sessionManager = remember { SessionManager(context) }
+
+    val initialName = sessionManager.getUserName() ?: "User"
+    val initialEmail = sessionManager.getUserEmail() ?: ""
+    val initialTempPref = sessionManager.getTempPreference() ?: "COLD"
+
     var userProfile by remember {
         mutableStateOf(
             UserProfile(
-                name = "John Doe",
-                email = "john.doe@library.com",
-                temperaturePreference = "COLD",
+                name = initialName,
+                email = initialEmail,
+                temperaturePreference = initialTempPref,
                 notificationsEnabled = true,
                 darkModeEnabled = false
             )
@@ -56,12 +63,13 @@ fun ProfileScreen(navController: NavController) {
     var showEditDialog by remember { mutableStateOf(false) }
     var editingName by remember { mutableStateOf("") }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFFFAFAFA))
-            .verticalScroll(rememberScrollState())
-    ) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0xFFFAFAFA))
+                .verticalScroll(rememberScrollState())
+        ) {
             // Header
             Column(
                 modifier = Modifier
@@ -139,21 +147,6 @@ fun ProfileScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(7.dp))
 
-            // Sección de Configuración
-            SectionHeader("Settings")
-
-            ProfileSwitchCard(
-                icon = Icons.Outlined.Notifications,
-                title = "Notifications",
-                subtitle = "Receive room availability alerts",
-                checked = userProfile.notificationsEnabled,
-                onCheckedChange = {
-                    userProfile = userProfile.copy(notificationsEnabled = it)
-                }
-            )
-
-            Spacer(modifier = Modifier.height(7.dp))
-
             // Sección de Cuenta
             SectionHeader("Account")
 
@@ -178,7 +171,7 @@ fun ProfileScreen(navController: NavController) {
 
             // Botón de Logout
             Button(
-                onClick = { /* Implementar logout */ },
+                onClick = onLogout,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp)
@@ -203,6 +196,7 @@ fun ProfileScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(32.dp))
         }
+    }
 
     // Dialog para editar nombre
     if (showEditDialog) {
@@ -311,78 +305,6 @@ fun ProfileCard(
                 contentDescription = null,
                 tint = Color(0xFFBDBDBD),
                 modifier = Modifier.size(20.dp)
-            )
-        }
-    }
-}
-
-@Composable
-fun ProfileSwitchCard(
-    icon: ImageVector,
-    title: String,
-    subtitle: String,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 4.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        shape = MaterialTheme.shapes.medium
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .background(
-                        color = Color(0xFF42A5F5).copy(alpha = 0.1f),
-                        shape = CircleShape
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = Color(0xFF42A5F5),
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.width(16.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = title,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = Color(0xFF212121)
-                )
-                Text(
-                    text = subtitle,
-                    fontSize = 13.sp,
-                    color = Color(0xFF757575),
-                    modifier = Modifier.padding(top = 2.dp)
-                )
-            }
-
-            Switch(
-                checked = checked,
-                onCheckedChange = onCheckedChange,
-                colors = SwitchDefaults.colors(
-                    checkedThumbColor = Color.White,
-                    checkedTrackColor = Color(0xFF42A5F5),
-                    uncheckedThumbColor = Color.White,
-                    uncheckedTrackColor = Color(0xFFE0E0E0)
-                )
             )
         }
     }
