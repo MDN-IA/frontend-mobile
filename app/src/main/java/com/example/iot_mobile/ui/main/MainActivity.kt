@@ -3,12 +3,15 @@ package com.example.iot_mobile.ui.main
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ExitToApp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -19,6 +22,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -29,6 +33,7 @@ import com.example.iot_mobile.R
 import com.example.iot_mobile.ui.navigation.AppNavigator
 import com.example.iot_mobile.ui.navigation.NavigationRoutes
 import com.example.iot_mobile.ui.theme.IOTMobileTheme
+import com.example.iot_mobile.utils.SessionManager
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -47,7 +52,22 @@ class MainActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen() {
+    val context = LocalContext.current
+    val sessionManager = remember { SessionManager(context) }
     val navController = rememberNavController()
+    var isLoggingOut by remember { mutableStateOf(false) }
+
+    // Datos de usuario desde la sesión
+    val userName = sessionManager.getUserName() ?: "User"
+    val userEmail = sessionManager.getUserEmail() ?: ""
+
+    // Determinar la pantalla inicial basándose en el estado de login
+    val startDestination = if (sessionManager.isLoggedIn()) {
+        NavigationRoutes.MAIN
+    } else {
+        NavigationRoutes.LOGIN
+    }
+
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
@@ -59,10 +79,30 @@ fun MainScreen() {
     val showTopBar = currentRoute !in listOf(NavigationRoutes.LOGIN, NavigationRoutes.REGISTER,
         NavigationRoutes.ROOM_DETAILS)
 
-    if (showTopBar) {
-        ModalNavigationDrawer(
-            drawerState = drawerState,
-            drawerContent = {
+    // Función de logout compartida
+    val handleLogout: () -> Unit = {
+        scope.launch {
+            if (showTopBar) {
+                drawerState.close()
+            }
+            isLoggingOut = true
+            // Simular un pequeño delay para mostrar el loading
+            kotlinx.coroutines.delay(800)
+            // Limpiar la sesión
+            sessionManager.clearSession()
+            // Navegar al login y limpiar todo el back stack
+            navController.navigate(NavigationRoutes.LOGIN) {
+                popUpTo(0) { inclusive = true }
+            }
+            isLoggingOut = false
+        }
+    }
+
+    Box {
+        if (showTopBar) {
+            ModalNavigationDrawer(
+                drawerState = drawerState,
+                drawerContent = {
                 DrawerContent(
                     currentRoute = currentRoute,
                     onNavigate = { route ->
@@ -71,15 +111,12 @@ fun MainScreen() {
                             navController.navigate(route)
                         }
                     },
-                    onLogout = {
-                        scope.launch {
-                            drawerState.close()
-                            // Aquí implementarás la lógica de logout
-                        }
-                    }
+                    onLogout = handleLogout,
+                    userName = userName,
+                    userEmail = userEmail
                 )
-            }
-        ) {
+                }
+            ) {
             Scaffold(
                 topBar = {
                     TopAppBar(
@@ -104,9 +141,10 @@ fun MainScreen() {
                                 onClick = { /* TODO: Implementar notificaciones */ }
                             ) {
                                 Icon(
-                                    imageVector = Icons.Outlined.Notifications,
-                                    contentDescription = "Notifications",
-                                    tint = Color(0xFF616161)
+                                    imageVector = Icons.Outlined.QrCode2,
+                                    contentDescription = "Show/Scan QR",
+                                    tint = Color(0xFF616161),
+                                    modifier = Modifier.size(28.dp)
                                 )
                             }
                         },
@@ -119,7 +157,11 @@ fun MainScreen() {
                 }
             ) { paddingValues ->
                 Box(modifier = Modifier.padding(paddingValues)) {
-                    AppNavigator(navController = navController)
+                    AppNavigator(
+                        navController = navController,
+                        startDestination = startDestination,
+                        onLogout = handleLogout
+                    )
                 }
             }
         }
@@ -127,7 +169,55 @@ fun MainScreen() {
         // Sin TopBar ni Drawer para pantallas de autenticación
         Scaffold { paddingValues ->
             Box(modifier = Modifier.padding(paddingValues)) {
-                AppNavigator(navController = navController)
+                AppNavigator(
+                    navController = navController,
+                    startDestination = startDestination,
+                    onLogout = handleLogout
+                )
+            }
+        }
+    }
+
+        // Overlay de loading para logout
+        if (isLoggingOut) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.5f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Surface(
+                    modifier = Modifier.size(120.dp),
+                    shape = RoundedCornerShape(20.dp),
+                    color = Color.White,
+                    shadowElevation = 1.dp,
+                    border = BorderStroke(1.dp, Color(0xFFF5F5F5))
+                ) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(14.dp)
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(40.dp),
+                                color = Color(0xFF42A5F5),
+                                strokeWidth = 2.5.dp,
+                                trackColor = Color.Transparent
+                            )
+
+                            Text(
+                                text = "Logging out",
+                                fontSize = 12.sp,
+                                color = Color(0xFF757575),
+                                fontWeight = FontWeight.Normal,
+                                letterSpacing = 0.3.sp
+                            )
+                        }
+                    }
+                }
             }
         }
     }
@@ -137,12 +227,13 @@ fun MainScreen() {
 fun DrawerContent(
     currentRoute: String,
     onNavigate: (String) -> Unit,
-    onLogout: () -> Unit
+    onLogout: () -> Unit,
+    userName: String,
+    userEmail: String
 ) {
     ModalDrawerSheet(
         drawerContainerColor = Color.White
     ) {
-        // Header minimalista
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -189,18 +280,20 @@ fun DrawerContent(
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = "John Doe",
+                text = userName,
                 fontSize = 18.sp,
                 fontWeight = FontWeight.SemiBold,
                 color = Color(0xFF212121)
             )
 
-            Text(
-                text = "john.doe@library.com",
-                fontSize = 13.sp,
-                color = Color(0xFF757575),
-                modifier = Modifier.padding(top = 4.dp)
-            )
+            if (userEmail.isNotEmpty()) {
+                Text(
+                    text = userEmail,
+                    fontSize = 13.sp,
+                    color = Color(0xFF757575),
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
         }
 
         HorizontalDivider(
@@ -233,10 +326,10 @@ fun DrawerContent(
         )
 
         MinimalMenuItem(
-            icon = Icons.Outlined.ExitToApp,
+            icon = Icons.AutoMirrored.Outlined.ExitToApp,
             label = "Logout",
             isSelected = false,
-            onClick = { onNavigate(NavigationRoutes.LOGIN) },
+            onClick = { onLogout() },
             isDestructive = true
         )
 

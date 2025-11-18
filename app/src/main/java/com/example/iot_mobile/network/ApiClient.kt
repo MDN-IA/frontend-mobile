@@ -110,4 +110,48 @@ object ApiClient {
             null
         }
     }
+
+    /**
+     * Método para realizar login de usuario.
+     * @param correo Correo electrónico del usuario
+     * @param contrasena Contraseña del usuario
+     * @return Respuesta en formato JSON con los datos del usuario o `null` si hay error.
+     */
+    suspend fun login(correo: String, contrasena: String, endpoint: String): String? = withContext(Dispatchers.IO) {
+        try {
+            val jsonBody = JSONObject().apply {
+                put("correo", correo)
+                put("contrasena", contrasena)
+            }
+
+            val url = URL("$BASE_URL$endpoint")
+            val connection = url.openConnection() as HttpURLConnection
+            connection.requestMethod = "POST"
+            connection.setRequestProperty("Content-Type", "application/json")
+            connection.doOutput = true
+
+            // Escribir el cuerpo de la petición
+            connection.outputStream.use { os ->
+                os.write(jsonBody.toString().toByteArray())
+                os.flush()
+            }
+
+            val responseCode = connection.responseCode
+            Log.d("ApiClient", "Login - Código de respuesta: $responseCode")
+
+            return@withContext if (responseCode == HttpURLConnection.HTTP_OK) {
+                val response = connection.inputStream.bufferedReader().use { it.readText() }
+                Log.d("ApiClient", "Login exitoso: $response")
+                response
+            } else {
+                val errorResponse = connection.errorStream?.bufferedReader()?.use { it.readText() }
+                Log.e("ApiClient", "Error en login: código $responseCode - $errorResponse")
+                null
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Log.e("ApiClient", "Error al conectar con el backend en login: ${e.message}")
+            null
+        }
+    }
 }
