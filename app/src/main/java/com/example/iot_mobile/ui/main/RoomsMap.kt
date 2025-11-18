@@ -23,6 +23,7 @@ import com.example.iot_mobile.network.ApiClient
 import com.example.iot_mobile.ui.navigation.NavigationRoutes
 import com.example.iot_mobile.utils.SessionManager
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import org.json.JSONArray
 
 data class Room(
@@ -78,49 +79,55 @@ fun MainScreen(
 
     val coroutineScope = rememberCoroutineScope()
 
-    // Cargar habitaciones desde el backend
+    // Cargar y refrescar habitaciones desde el backend periódicamente
     LaunchedEffect(Unit) {
-        coroutineScope.launch {
-            isLoading = true
-            errorMessage = null
+        while (true) { // Bucle infinito para refrescar continuamente
+            coroutineScope.launch {
+                if (rooms.isEmpty()) { // Muestra el indicador de carga solo la primera vez
+                    isLoading = true
+                }
+                errorMessage = null
 
-            try {
-                val response = ApiClient.get("rooms")
+                try {
+                    val response = ApiClient.get("rooms")
 
-                response?.let {
-                    val jsonArray = JSONArray(it)
-                    val fetchedRooms = mutableListOf<Room>()
+                    response?.let {
+                        val jsonArray = JSONArray(it)
+                        val fetchedRooms = mutableListOf<Room>()
 
-                    for (i in 0 until jsonArray.length()) {
-                        val jsonObject = jsonArray.getJSONObject(i)
-                        val temperature = jsonObject.optDouble("temp", 0.0).toFloat()
-                        val light = jsonObject.optDouble("light", 0.0).toFloat()
-                        val humidity = jsonObject.optDouble("hum", 0.0).toFloat()
+                        for (i in 0 until jsonArray.length()) {
+                            val jsonObject = jsonArray.getJSONObject(i)
+                            val temperature = jsonObject.optDouble("temp", 0.0).toFloat()
+                            val light = jsonObject.optDouble("light", 0.0).toFloat()
+                            val humidity = jsonObject.optDouble("hum", 0.0).toFloat() //
 
-                        fetchedRooms.add(
-                            Room(
-                                id = jsonObject.optInt("id"),
-                                code = jsonObject.getString("code"),
-                                name = jsonObject.getString("name"),
-                                temp = temperature,
-                                light = light,
-                                hum = humidity,
-                                temperatureType = TemperatureType.fromTemperature(temperature),
-                                available = AvailabilityStatus.fromLight(light) == AvailabilityStatus.AVAILABLE
+                            fetchedRooms.add(
+                                Room(
+                                    id = jsonObject.optInt("id"),
+                                    code = jsonObject.getString("code"),
+                                    name = jsonObject.getString("name"),
+                                    temp = temperature,
+                                    light = light,
+                                    hum = humidity,
+                                    temperatureType = TemperatureType.fromTemperature(temperature),
+                                    available = AvailabilityStatus.fromLight(light) == AvailabilityStatus.AVAILABLE
+                                )
                             )
-                        )
-                    }
+                        }
 
-                    rooms = fetchedRooms
-                    isLoading = false
-                } ?: run {
-                    errorMessage = "Error al obtener las habitaciones"
+                        rooms = fetchedRooms
+                        isLoading = false
+                    } ?: run {
+                        errorMessage = "Error al obtener las habitaciones"
+                        isLoading = false
+                    }
+                } catch (e: Exception) {
+                    errorMessage = "Error: ${e.message}"
                     isLoading = false
                 }
-            } catch (e: Exception) {
-                errorMessage = "Error: ${e.message}"
-                isLoading = false
             }
+
+            delay(30000L) // Espera 10 segundos antes de la siguiente actualización
         }
     }
 

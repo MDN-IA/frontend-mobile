@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.iot_mobile.network.ApiClient
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import org.json.JSONObject
 
 data class RoomDetailData(
@@ -23,8 +24,8 @@ data class RoomDetailData(
     val isAvailable: Boolean,
     val humidity: Float,
     val light: Float,
-    val state: String, // "COLD", "WARM", "HOT"
-    val recentTemperatures: List<Float> = listOf(19f, 18.5f, 20f, 19f, 18f, 19.5f, 18.5f) // Últimas 7 lecturas
+    val state: String,
+    val tempHistory: List<Float> = emptyList() // ✅ Agregado
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -39,48 +40,62 @@ fun RoomDetailsScreen(
 
     val coroutineScope = rememberCoroutineScope()
 
-    // Cargar datos de la habitación desde el backend
+    // Cargar y refrescar datos de la habitación desde el backend periódicamente
     LaunchedEffect(roomId) {
-        coroutineScope.launch {
-            isLoading = true
-            errorMessage = null
+        while (true) {
+            coroutineScope.launch {
+                if (roomData == null) {
+                    isLoading = true
+                }
+                errorMessage = null
 
-            try {
-                val response = ApiClient.getRoomById(roomId)
+                try {
+                    val response = ApiClient.getRoomById(roomId) //
 
-                response?.let {
-                    val jsonObject = JSONObject(it)
-                    val temperature = jsonObject.optDouble("temp", 0.0).toFloat()
-                    val light = jsonObject.optDouble("light", 0.0).toFloat()
-                    val humidity = jsonObject.optDouble("hum", 0.0).toFloat()
+                    response?.let {
+                        val jsonObject = JSONObject(it)
+                        val temperature = jsonObject.optDouble("temp", 0.0).toFloat()
+                        val light = jsonObject.optDouble("light", 0.0).toFloat()
+                        val humidity = jsonObject.optDouble("hum", 0.0).toFloat()
 
-                    val state = when {
-                        temperature < 20 -> "COLD"
-                        temperature in 20f..23f -> "WARM"
-                        else -> "HOT"
+                        // ✅ OBTENER EL ARRAY DE TEMPERATURAS
+                        val tempHistoryArray = mutableListOf<Float>()
+                        val tempHistoryJson = jsonObject.optJSONArray("tempHistory")
+                        if (tempHistoryJson != null) {
+                            for (i in 0 until tempHistoryJson.length()) {
+                                tempHistoryArray.add(tempHistoryJson.getDouble(i).toFloat())
+                            }
+                        }
+
+                        val state = when {
+                            temperature < 20 -> "COLD"
+                            temperature in 20f..23f -> "WARM"
+                            else -> "HOT"
+                        }
+
+                        val available = light < 900
+
+                        roomData = RoomDetailData(
+                            name = jsonObject.getString("name"),
+                            temperature = temperature,
+                            isAvailable = available,
+                            humidity = humidity,
+                            light = light,
+                            state = state,
+                            tempHistory = tempHistoryArray // ✅ Pasar el array aquí
+                        )
+
+                        isLoading = false
+                    } ?: run {
+                        errorMessage = "Error al obtener los datos de la habitación"
+                        isLoading = false
                     }
-
-                    val available = light < 900
-
-                    roomData = RoomDetailData(
-                        name = jsonObject.getString("name"),
-                        temperature = temperature,
-                        isAvailable = available,
-                        humidity = humidity,
-                        light = light,
-                        state = state,
-                        recentTemperatures = listOf(19f, 18.5f, 20f, 19f, 18f, 19.5f, temperature) // TODO: obtener del historial
-                    )
-
-                    isLoading = false
-                } ?: run {
-                    errorMessage = "Error al obtener los datos de la habitación"
+                } catch (e: Exception) {
+                    errorMessage = "Error: ${e.message}"
                     isLoading = false
                 }
-            } catch (e: Exception) {
-                errorMessage = "Error: ${e.message}"
-                isLoading = false
             }
+            delay(30000L) // Espera 30 segundos antes de la siguiente actualización
         }
     }
 
@@ -92,8 +107,7 @@ fun RoomDetailsScreen(
     }
 
     Scaffold {
-        paddingValues ->
-
+            paddingValues ->
         if (isLoading) {
             Box(
                 modifier = Modifier
@@ -251,8 +265,9 @@ fun RoomDetailsScreen(
 
                         Spacer(modifier = Modifier.height(32.dp))
 
+                        // ✅ USAR EL ARRAY DEL BACKEND EN LUGAR DEL LOCAL
                         SimpleBarChart(
-                            data = room.recentTemperatures,
+                            data = room.tempHistory,
                             color = temperatureColor
                         )
                     }
@@ -316,6 +331,11 @@ fun SimpleBarChart(
     data: List<Float>,
     color: Color
 ) {
+    if (data.isEmpty()) {
+        Text("Sin datos disponibles", color = Color.Gray)
+        return
+    }
+
     val maxValue = data.maxOrNull() ?: 25f
     val minValue = data.minOrNull() ?: 15f
     val range = maxValue - minValue
@@ -333,14 +353,12 @@ fun SimpleBarChart(
         verticalAlignment = Alignment.Bottom
     ) {
         data.forEach { value ->
-            // Normalizar la altura proporcionalmente al rango
             val normalizedHeight = if (range > 0) {
                 (value - minValue) / range
             } else {
                 1f
             }
 
-            // Altura base de 30% + 70% proporcional para que todas las barras sean visibles
             val heightFraction = 0.3f + (normalizedHeight * 0.7f)
 
             Column(
@@ -348,7 +366,7 @@ fun SimpleBarChart(
                 verticalArrangement = Arrangement.Bottom
             ) {
                 Text(
-                    text = "${value}°",
+                    text = "${String.format("%.1f", value)}°",
                     fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = Color(0xFF616161),
