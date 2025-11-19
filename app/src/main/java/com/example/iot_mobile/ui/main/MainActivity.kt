@@ -77,7 +77,7 @@ fun MainScreen() {
 
     // Determinar si debemos mostrar el TopBar y el Drawer
     val showTopBar = currentRoute !in listOf(NavigationRoutes.LOGIN, NavigationRoutes.REGISTER,
-        NavigationRoutes.ROOM_DETAILS)
+        NavigationRoutes.ROOM_DETAILS, NavigationRoutes.QR)
 
     // Función de logout compartida
     val handleLogout: () -> Unit = {
@@ -138,7 +138,9 @@ fun MainScreen() {
                         },
                         actions = {
                             IconButton(
-                                onClick = { /* TODO: Implementar notificaciones */ }
+                                onClick = {
+                                    navController.navigate(NavigationRoutes.QR)
+                                }
                             ) {
                                 Icon(
                                     imageVector = Icons.Outlined.QrCode2,
