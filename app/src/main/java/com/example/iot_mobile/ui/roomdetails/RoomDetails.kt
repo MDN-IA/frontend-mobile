@@ -2,6 +2,8 @@ package com.example.iot_mobile.ui.roomdetails
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
@@ -25,7 +27,7 @@ data class RoomDetailData(
     val humidity: Float,
     val light: Float,
     val state: String,
-    val tempHistory: List<Float> = emptyList() // ✅ Agregado
+    val tempHistory: List<Float> = emptyList() // Agregado
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -58,7 +60,7 @@ fun RoomDetailsScreen(
                         val light = jsonObject.optDouble("light", 0.0).toFloat()
                         val humidity = jsonObject.optDouble("hum", 0.0).toFloat()
 
-                        // ✅ OBTENER EL ARRAY DE TEMPERATURAS
+                        // OBTENER EL ARRAY DE TEMPERATURAS
                         val tempHistoryArray = mutableListOf<Float>()
                         val tempHistoryJson = jsonObject.optJSONArray("tempHistory")
                         if (tempHistoryJson != null) {
@@ -82,7 +84,7 @@ fun RoomDetailsScreen(
                             humidity = humidity,
                             light = light,
                             state = state,
-                            tempHistory = tempHistoryArray // ✅ Pasar el array aquí
+                            tempHistory = tempHistoryArray // Pasar el array aquí
                         )
 
                         isLoading = false
@@ -106,12 +108,14 @@ fun RoomDetailsScreen(
         else -> Color.Gray
     }
 
-    Scaffold {
-            paddingValues ->
+    Scaffold(
+        containerColor = Color(0xFFFAFAFA)
+    ) { paddingValues ->
         if (isLoading) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
+                    .padding(paddingValues)
                     .background(Color(0xFFFAFAFA)),
                 contentAlignment = Alignment.Center
             ) {
@@ -121,6 +125,7 @@ fun RoomDetailsScreen(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
+                    .padding(paddingValues)
                     .background(Color(0xFFFAFAFA)),
                 contentAlignment = Alignment.Center
             ) {
@@ -143,8 +148,8 @@ fun RoomDetailsScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(paddingValues)
                         .background(Color(0xFFFAFAFA))
+                        .verticalScroll(rememberScrollState())
                 ) {
                     // Header Section
                     Column(
@@ -265,7 +270,7 @@ fun RoomDetailsScreen(
 
                         Spacer(modifier = Modifier.height(32.dp))
 
-                        // ✅ USAR EL ARRAY DEL BACKEND EN LUGAR DEL LOCAL
+                        // USAR EL ARRAY DEL BACKEND EN LUGAR DEL LOCAL
                         SimpleBarChart(
                             data = room.tempHistory,
                             color = temperatureColor

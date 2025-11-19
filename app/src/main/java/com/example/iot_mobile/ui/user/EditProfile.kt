@@ -308,6 +308,7 @@ fun ProfileScreen(navController: NavController, onLogout: () -> Unit = {}) {
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color(0xFFFAFAFA))
+                .verticalScroll(rememberScrollState())
         ) {
             // Header
             Column(
@@ -502,13 +503,15 @@ fun ProfileScreen(navController: NavController, onLogout: () -> Unit = {}) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Outlined.ExitToApp,
                     contentDescription = null,
+                    tint = Color(0xFF212121),
                     modifier = Modifier.size(20.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "Logout",
                     fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFF212121)
                 )
             }
 
@@ -598,7 +601,8 @@ fun ProfileScreen(navController: NavController, onLogout: () -> Unit = {}) {
                             unfocusedBorderColor = Color(0xFFE0E0E0),
                             unfocusedLabelColor = Color(0xFF9E9E9E),
                             disabledBorderColor = Color(0xFFF5F5F5),
-                            disabledLabelColor = Color(0xFFBDBDBD)
+                            focusedTextColor = Color(0xFF212121),
+                            unfocusedTextColor = Color(0xFF212121)
                         ),
                         shape = MaterialTheme.shapes.medium
                     )
@@ -622,7 +626,9 @@ fun ProfileScreen(navController: NavController, onLogout: () -> Unit = {}) {
                             unfocusedBorderColor = Color(0xFFE0E0E0),
                             unfocusedLabelColor = Color(0xFF9E9E9E),
                             disabledBorderColor = Color(0xFFF5F5F5),
-                            disabledLabelColor = Color(0xFFBDBDBD)
+                            disabledLabelColor = Color(0xFFBDBDBD),
+                            focusedTextColor = Color(0xFF212121),
+                            unfocusedTextColor = Color(0xFF212121)
                         ),
                         shape = MaterialTheme.shapes.medium
                     )
@@ -681,7 +687,9 @@ fun ProfileScreen(navController: NavController, onLogout: () -> Unit = {}) {
                             unfocusedBorderColor = Color(0xFFE0E0E0),
                             unfocusedLabelColor = Color(0xFF9E9E9E),
                             disabledBorderColor = Color(0xFFF5F5F5),
-                            disabledLabelColor = Color(0xFFBDBDBD)
+                            disabledLabelColor = Color(0xFFBDBDBD),
+                            focusedTextColor = Color(0xFF212121),
+                            unfocusedTextColor = Color(0xFF212121)
                         ),
                         shape = MaterialTheme.shapes.medium
                     )
@@ -719,7 +727,8 @@ fun ProfileScreen(navController: NavController, onLogout: () -> Unit = {}) {
                             "Save",
                             fontSize = 14.sp,
                             fontWeight = FontWeight.SemiBold,
-                            letterSpacing = 0.3.sp
+                            letterSpacing = 0.3.sp,
+                            color = Color(0xFF212121)
                         )
                     }
                 }
@@ -865,7 +874,9 @@ fun ProfileScreen(navController: NavController, onLogout: () -> Unit = {}) {
                             unfocusedBorderColor = Color(0xFFE0E0E0),
                             unfocusedLabelColor = Color(0xFF9E9E9E),
                             disabledBorderColor = Color(0xFFF5F5F5),
-                            disabledLabelColor = Color(0xFFBDBDBD)
+                            disabledLabelColor = Color(0xFFBDBDBD),
+                            focusedTextColor = Color(0xFF212121),
+                            unfocusedTextColor = Color(0xFF212121)
                         ),
                         shape = MaterialTheme.shapes.medium
                     )
@@ -924,7 +935,9 @@ fun ProfileScreen(navController: NavController, onLogout: () -> Unit = {}) {
                             unfocusedBorderColor = Color(0xFFE0E0E0),
                             unfocusedLabelColor = Color(0xFF9E9E9E),
                             disabledBorderColor = Color(0xFFF5F5F5),
-                            disabledLabelColor = Color(0xFFBDBDBD)
+                            disabledLabelColor = Color(0xFFBDBDBD),
+                            focusedTextColor = Color(0xFF212121),
+                            unfocusedTextColor = Color(0xFF212121)
                         ),
                         shape = MaterialTheme.shapes.medium
                     )
@@ -956,7 +969,9 @@ fun ProfileScreen(navController: NavController, onLogout: () -> Unit = {}) {
                             unfocusedBorderColor = Color(0xFFE0E0E0),
                             unfocusedLabelColor = Color(0xFF9E9E9E),
                             disabledBorderColor = Color(0xFFF5F5F5),
-                            disabledLabelColor = Color(0xFFBDBDBD)
+                            disabledLabelColor = Color(0xFFBDBDBD),
+                            focusedTextColor = Color(0xFF212121),
+                            unfocusedTextColor = Color(0xFF212121)
                         ),
                         shape = MaterialTheme.shapes.medium
                     )
@@ -994,7 +1009,8 @@ fun ProfileScreen(navController: NavController, onLogout: () -> Unit = {}) {
                             "Change",
                             fontSize = 14.sp,
                             fontWeight = FontWeight.SemiBold,
-                            letterSpacing = 0.3.sp
+                            letterSpacing = 0.3.sp,
+                            color = Color(0xFF212121)
                         )
                     }
                 }
@@ -1173,7 +1189,9 @@ fun ProfileScreen(navController: NavController, onLogout: () -> Unit = {}) {
                             unfocusedBorderColor = Color(0xFFE0E0E0),
                             unfocusedLabelColor = Color(0xFF9E9E9E),
                             disabledBorderColor = Color(0xFFF5F5F5),
-                            disabledLabelColor = Color(0xFFBDBDBD)
+                            disabledLabelColor = Color(0xFFBDBDBD),
+                            focusedTextColor = Color(0xFF212121),
+                            unfocusedTextColor = Color(0xFF212121)
                         ),
                         shape = MaterialTheme.shapes.medium
                     )
@@ -1211,7 +1229,8 @@ fun ProfileScreen(navController: NavController, onLogout: () -> Unit = {}) {
                             "Delete",
                             fontSize = 14.sp,
                             fontWeight = FontWeight.SemiBold,
-                            letterSpacing = 0.3.sp
+                            letterSpacing = 0.3.sp,
+                            color = Color(0xFF212121)
                         )
                     }
                 }
