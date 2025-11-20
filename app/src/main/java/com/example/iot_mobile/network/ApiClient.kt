@@ -8,8 +8,8 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 object ApiClient {
-    //const val BASE_URL = "http://10.0.2.2:4000/api" // Usa la IP local del backend
-    const val BASE_URL = "http://64.226.100.1:4000/api" // Usa la IP publica (nube) del backend
+    const val BASE_URL = "http://10.0.2.2:4000/api" // Usa la IP local del backend
+    //const val BASE_URL = "http://64.226.100.1:4000/api" // Usa la IP publica (nube) del backend
 
 
     /**
@@ -275,6 +275,126 @@ object ApiClient {
         } catch (e: Exception) {
             e.printStackTrace()
             Log.e("ApiClient", "Error al conectar con el backend en deleteUser: ${e.message}")
+            null
+        }
+    }
+
+    /**
+     * Método para obtener la imagen QR de un usuario.
+     * @param userId ID del usuario
+     * @return Array de bytes con la imagen PNG o `null` si hay error.
+     */
+    suspend fun getQRImage(userId: Int): ByteArray? = withContext(Dispatchers.IO) {
+        try {
+            val url = URL("$BASE_URL/users/qr-image/$userId")  // ← AQUÍ
+            val connection = url.openConnection() as HttpURLConnection
+            connection.requestMethod = "GET"
+            connection.setRequestProperty("Accept", "image/png")
+
+            val responseCode = connection.responseCode
+            Log.d("ApiClient", "GetQRImage - Código de respuesta: $responseCode")
+
+            return@withContext if (responseCode == HttpURLConnection.HTTP_OK) {
+                val imageBytes = connection.inputStream.readBytes()
+                Log.d("ApiClient", "QR obtenido exitosamente: ${imageBytes.size} bytes")
+                imageBytes
+            } else {
+                Log.e("ApiClient", "Error al obtener QR: código $responseCode")
+                null
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Log.e("ApiClient", "Error al conectar con el backend en getQRImage: ${e.message}")
+            null
+        }
+    }
+
+    /**
+     * Solicitar reset de contraseña
+     */
+    suspend fun forgotPassword(correo: String): String? = withContext(Dispatchers.IO) {
+        try {
+            val url = URL("$BASE_URL/users/forgot-password")
+            val connection = url.openConnection() as HttpURLConnection
+            connection.requestMethod = "POST"
+            connection.setRequestProperty("Content-Type", "application/json")
+            connection.doOutput = true
+
+            val requestBody = JSONObject().apply {
+                put("correo", correo)
+            }
+
+            connection.outputStream.use { os ->
+                os.write(requestBody.toString().toByteArray())
+            }
+
+            val responseCode = connection.responseCode
+            Log.d("ApiClient", "ForgotPassword - Código: $responseCode")
+
+            return@withContext if (responseCode == HttpURLConnection.HTTP_OK) {
+                connection.inputStream.bufferedReader().use { it.readText() }
+            } else {
+                val error = connection.errorStream?.bufferedReader()?.use { it.readText() }
+                Log.e("ApiClient", "Error: $error")
+                null
+            }
+        } catch (e: Exception) {
+            Log.e("ApiClient", "Error en forgotPassword: ${e.message}")
+            null
+        }
+    }
+
+    /**
+     * Verificar token de reset
+     */
+    suspend fun verifyResetToken(token: String): String? = withContext(Dispatchers.IO) {
+        try {
+            val url = URL("$BASE_URL/users/verify-reset-token/$token")
+            val connection = url.openConnection() as HttpURLConnection
+            connection.requestMethod = "GET"
+
+            val responseCode = connection.responseCode
+
+            return@withContext if (responseCode == HttpURLConnection.HTTP_OK) {
+                connection.inputStream.bufferedReader().use { it.readText() }
+            } else {
+                null
+            }
+        } catch (e: Exception) {
+            Log.e("ApiClient", "Error en verifyResetToken: ${e.message}")
+            null
+        }
+    }
+
+    /**
+     * Reset de contraseña
+     */
+    suspend fun resetPassword(token: String, nuevaContrasena: String): String? = withContext(Dispatchers.IO) {
+        try {
+            val url = URL("$BASE_URL/users/reset-password")
+            val connection = url.openConnection() as HttpURLConnection
+            connection.requestMethod = "POST"
+            connection.setRequestProperty("Content-Type", "application/json")
+            connection.doOutput = true
+
+            val requestBody = JSONObject().apply {
+                put("token", token)
+                put("nuevaContrasena", nuevaContrasena)
+            }
+
+            connection.outputStream.use { os ->
+                os.write(requestBody.toString().toByteArray())
+            }
+
+            val responseCode = connection.responseCode
+
+            return@withContext if (responseCode == HttpURLConnection.HTTP_OK) {
+                connection.inputStream.bufferedReader().use { it.readText() }
+            } else {
+                null
+            }
+        } catch (e: Exception) {
+            Log.e("ApiClient", "Error en resetPassword: ${e.message}")
             null
         }
     }

@@ -1,6 +1,8 @@
 package com.example.iot_mobile.ui.main
 
+import android.net.Uri
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.BorderStroke
@@ -41,9 +43,18 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        // Obtener el Deep Link
+        val deepLink = intent.data
+        var resetToken: String? = null
+
+        if (deepLink != null && deepLink.scheme == "iotmobile") {
+            resetToken = deepLink.lastPathSegment
+            Log.d("MainActivity", "Deep Link recibido con token: $resetToken")
+        }
+
         setContent {
             IOTMobileTheme {
-                MainScreen()
+                MainScreen(resetToken = resetToken)
             }
         }
     }
@@ -51,7 +62,7 @@ class MainActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainScreen() {
+fun MainScreen(resetToken: String? = null) {
     val context = LocalContext.current
     val sessionManager = remember { SessionManager(context) }
     val navController = rememberNavController()
@@ -61,11 +72,11 @@ fun MainScreen() {
     val userName = sessionManager.getUserName() ?: "User"
     val userEmail = sessionManager.getUserEmail() ?: ""
 
-    // Determinar la pantalla inicial basándose en el estado de login
-    val startDestination = if (sessionManager.isLoggedIn()) {
-        NavigationRoutes.MAIN
-    } else {
-        NavigationRoutes.LOGIN
+    // Determinar la pantalla inicial basándose en el estado de login y si hay resetToken
+    val startDestination = when {
+        resetToken != null -> "reset-password/$resetToken"
+        sessionManager.isLoggedIn() -> NavigationRoutes.MAIN
+        else -> NavigationRoutes.LOGIN
     }
 
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
@@ -77,7 +88,7 @@ fun MainScreen() {
 
     // Determinar si debemos mostrar el TopBar y el Drawer
     val showTopBar = currentRoute !in listOf(NavigationRoutes.LOGIN, NavigationRoutes.REGISTER,
-        NavigationRoutes.ROOM_DETAILS, NavigationRoutes.QR)
+        NavigationRoutes.FORGOT_PASSWORD, NavigationRoutes.ROOM_DETAILS, NavigationRoutes.QR, "reset-password/{token}")
 
     // Función de logout compartida
     val handleLogout: () -> Unit = {

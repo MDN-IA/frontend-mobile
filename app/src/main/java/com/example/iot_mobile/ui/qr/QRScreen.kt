@@ -40,6 +40,13 @@ import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
 import java.util.concurrent.Executors
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.foundation.Image
+import androidx.compose.ui.layout.ContentScale
+import com.example.iot_mobile.network.ApiClient
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -535,89 +542,120 @@ private fun extractUserIdFromQR(qrCode: String): String? {
 
 @Composable
 fun QRDisplayView(userId: Int, userName: String) {
-        Column(
+    val context = LocalContext.current
+    var qrImageBitmap by remember { mutableStateOf<Bitmap?>(null) }
+    var isLoading by remember { mutableStateOf(true) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+
+    // Cargar la imagen QR cuando se monta el composable
+    LaunchedEffect(userId) {
+        isLoading = true
+        try {
+            val imageBytes = ApiClient.getQRImage(userId)
+            if (imageBytes != null) {
+                qrImageBitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
+                errorMessage = null
+            } else {
+                errorMessage = "Error al obtener la imagen QR"
+            }
+        } catch (e: Exception) {
+            errorMessage = "Error: ${e.message}"
+            Log.e("QRDisplayView", "Error cargando QR", e)
+        } finally {
+            isLoading = false
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(top = 24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Top
+    ) {
+        Text(
+            text = "My QR Code",
+            fontSize = 24.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFF212121)
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = userName,
+            fontSize = 16.sp,
+            color = Color(0xFF757575)
+        )
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        // Mostrar la imagen QR real
+        Surface(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(top = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Top
+                .size(280.dp),
+            shape = RoundedCornerShape(24.dp),
+            color = Color.White,
+            shadowElevation = 8.dp
         ) {
-            Text(
-                text = "My QR Code",
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF212121)
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Text(
-                text = userName,
-                fontSize = 16.sp,
-                color = Color(0xFF757575)
-            )
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            // Simulación de QR Code
-            Surface(
-                modifier = Modifier
-                    .size(280.dp),
-                shape = RoundedCornerShape(24.dp),
-                color = Color.White,
-                shadowElevation = 8.dp
+            Box(
+                contentAlignment = Alignment.Center
             ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(24.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    // Placeholder para el QR real
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.QrCode2,
+                when {
+                    isLoading -> {
+                        CircularProgressIndicator()
+                    }
+                    errorMessage != null -> {
+                        Text(
+                            text = errorMessage ?: "Error",
+                            color = Color.Red,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(16.dp)
+                        )
+                    }
+                    qrImageBitmap != null -> {
+                        Image(
+                            bitmap = qrImageBitmap!!.asImageBitmap(),
                             contentDescription = "QR Code",
-                            modifier = Modifier.size(200.dp),
-                            tint = Color(0xFF212121)
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Fit
                         )
                     }
                 }
             }
+        }
 
-            Spacer(modifier = Modifier.height(48.dp))
+        Spacer(modifier = Modifier.height(32.dp))
 
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 32.dp),
-                shape = RoundedCornerShape(12.dp),
-                color = Color(0xFF42A5F5).copy(alpha = 0.1f)
+        // User ID y mensaje debajo de la imagen
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 32.dp),
+            shape = RoundedCornerShape(12.dp),
+            color = Color(0xFF42A5F5).copy(alpha = 0.1f)
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = "User ID: $userId",
-                        fontSize = 14.sp,
-                        color = Color(0xFF212121),
-                        fontWeight = FontWeight.Medium
-                    )
+                Text(
+                    text = "User ID: $userId",
+                    fontSize = 14.sp,
+                    color = Color(0xFF212121),
+                    fontWeight = FontWeight.Medium
+                )
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
-                    Text(
-                        text = "Show this code to access rooms",
-                        fontSize = 12.sp,
-                        color = Color(0xFF757575),
-                        textAlign = TextAlign.Center
-                    )
-                }
+                Text(
+                    text = "Show this code to access rooms",
+                    fontSize = 12.sp,
+                    color = Color(0xFF757575),
+                    textAlign = TextAlign.Center
+                )
             }
         }
     }
+}
 

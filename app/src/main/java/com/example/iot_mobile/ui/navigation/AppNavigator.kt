@@ -6,8 +6,11 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import com.example.iot_mobile.ui.auth.EnterResetCodeScreen
+import com.example.iot_mobile.ui.auth.ForgotPasswordScreen
 import com.example.iot_mobile.ui.auth.LoginScreen
 import com.example.iot_mobile.ui.auth.RegisterScreen
+import com.example.iot_mobile.ui.auth.ResetPasswordScreen
 import com.example.iot_mobile.ui.main.MainScreen
 import com.example.iot_mobile.ui.profile.ProfileScreen
 import com.example.iot_mobile.ui.qr.QRScreen
@@ -20,6 +23,9 @@ object NavigationRoutes {
     const val PROFILE = "profile"
     const val QR = "qr"
     const val ROOM_DETAILS = "room_details/{roomId}"
+    const val FORGOT_PASSWORD = "forgot-password"
+    const val ENTER_RESET_CODE = "enter-reset-code"
+    const val RESET_PASSWORD = "reset-password/{resetCode}"
 
     fun roomDetails(roomId: Int): String {
         return "room_details/$roomId"
@@ -49,6 +55,24 @@ fun AppNavigator(
             LoginScreen(navController)
         }
 
+        composable(NavigationRoutes.FORGOT_PASSWORD) {
+            ForgotPasswordScreen(navController)
+        }
+
+        composable(NavigationRoutes.ENTER_RESET_CODE) {
+            EnterResetCodeScreen(navController = navController)
+        }
+
+        composable(
+            route = NavigationRoutes.RESET_PASSWORD,
+            arguments = listOf(
+                navArgument("resetCode") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val resetCode = backStackEntry.arguments?.getString("resetCode")
+            ResetPasswordScreen(resetCode = resetCode, navController = navController)
+        }
+
         composable(NavigationRoutes.PROFILE) {
             ProfileScreen(navController = navController, onLogout = onLogout)
         }
@@ -68,4 +92,3 @@ fun AppNavigator(
         }
     }
 }
-

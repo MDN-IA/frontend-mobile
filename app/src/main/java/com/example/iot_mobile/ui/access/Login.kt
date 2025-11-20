@@ -275,7 +275,7 @@ fun LoginScreen(navController: NavController) {
 
             // Forgot Password
             TextButton(
-                onClick = { /* Implementar recuperación de contraseña */ },
+                onClick = { navController.navigate(NavigationRoutes.FORGOT_PASSWORD) },
                 modifier = Modifier.align(Alignment.End)
             ) {
                 Text(
