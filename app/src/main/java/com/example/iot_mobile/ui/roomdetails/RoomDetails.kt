@@ -21,13 +21,16 @@ import kotlinx.coroutines.delay
 import org.json.JSONObject
 
 data class RoomDetailData(
+    val id: Int,
     val name: String,
     val temperature: Float,
     val isAvailable: Boolean,
     val humidity: Float,
     val light: Float,
     val state: String,
-    val tempHistory: List<Float> = emptyList() // Agregado
+    val capacity: Int,
+    val currentOccupancy: Int,
+    val tempHistory: List<Float> = emptyList()
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -42,7 +45,6 @@ fun RoomDetailsScreen(
 
     val coroutineScope = rememberCoroutineScope()
 
-    // Cargar y refrescar datos de la habitación desde el backend periódicamente
     LaunchedEffect(roomId) {
         while (true) {
             coroutineScope.launch {
@@ -52,15 +54,16 @@ fun RoomDetailsScreen(
                 errorMessage = null
 
                 try {
-                    val response = ApiClient.getRoomById(roomId) //
+                    val response = ApiClient.getRoomById(roomId)
 
                     response?.let {
                         val jsonObject = JSONObject(it)
                         val temperature = jsonObject.optDouble("temp", 0.0).toFloat()
                         val light = jsonObject.optDouble("light", 0.0).toFloat()
                         val humidity = jsonObject.optDouble("hum", 0.0).toFloat()
+                        val capacity = jsonObject.optInt("capacity", 30)
+                        val currentOccupancy = jsonObject.optInt("currentOccupancy", 0)
 
-                        // OBTENER EL ARRAY DE TEMPERATURAS
                         val tempHistoryArray = mutableListOf<Float>()
                         val tempHistoryJson = jsonObject.optJSONArray("tempHistory")
                         if (tempHistoryJson != null) {
@@ -78,13 +81,16 @@ fun RoomDetailsScreen(
                         val available = light < 900
 
                         roomData = RoomDetailData(
+                            id = roomId,
                             name = jsonObject.getString("name"),
                             temperature = temperature,
                             isAvailable = available,
                             humidity = humidity,
                             light = light,
                             state = state,
-                            tempHistory = tempHistoryArray // Pasar el array aquí
+                            capacity = capacity,
+                            currentOccupancy = currentOccupancy,
+                            tempHistory = tempHistoryArray
                         )
 
                         isLoading = false
@@ -97,7 +103,7 @@ fun RoomDetailsScreen(
                     isLoading = false
                 }
             }
-            delay(30000L) // Espera 30 segundos antes de la siguiente actualización
+            delay(30000L)
         }
     }
 
@@ -230,6 +236,12 @@ fun RoomDetailsScreen(
                             .padding(horizontal = 16.dp, vertical = 16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
+                        // ← TARJETA DE CAPACIDAD
+                        CapacityCard(
+                            currentOccupancy = room.currentOccupancy,
+                            capacity = room.capacity
+                        )
+
                         InfoCard(
                             label = "Availability",
                             value = if (room.isAvailable) "Available" else "Not Available",
@@ -270,7 +282,6 @@ fun RoomDetailsScreen(
 
                         Spacer(modifier = Modifier.height(32.dp))
 
-                        // USAR EL ARRAY DEL BACKEND EN LUGAR DEL LOCAL
                         SimpleBarChart(
                             data = room.tempHistory,
                             color = temperatureColor
@@ -280,6 +291,76 @@ fun RoomDetailsScreen(
                     Spacer(modifier = Modifier.height(16.dp))
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun CapacityCard(
+    currentOccupancy: Int,
+    capacity: Int
+) {
+    val availableSpaces = capacity - currentOccupancy
+    val occupancyPercentage = (currentOccupancy.toFloat() / capacity) * 100
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        shape = MaterialTheme.shapes.medium
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Capacity",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color(0xFF9E9E9E),
+                    letterSpacing = 0.4.sp
+                )
+
+                Text(
+                    text = "$currentOccupancy / $capacity",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF212121)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Barra de progreso
+            LinearProgressIndicator(
+                progress = if (capacity > 0) occupancyPercentage / 100f else 0f,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(8.dp),
+                color = when {
+                    occupancyPercentage < 50 -> Color(0xFF66BB6A)
+                    occupancyPercentage < 80 -> Color(0xFFFFB74D)
+                    else -> Color(0xFFEF5350)
+                },
+                trackColor = Color(0xFFE0E0E0)
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Text(
+                text = "$availableSpaces available spaces",
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color(0xFF42A5F5)
+            )
         }
     }
 }

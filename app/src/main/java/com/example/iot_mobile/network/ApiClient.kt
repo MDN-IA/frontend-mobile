@@ -398,4 +398,40 @@ object ApiClient {
             null
         }
     }
+
+    /**
+    * Registrar entrada/salida en una habitación
+    */
+    suspend fun registerRoomAccess(userId: Int, roomId: Int): String? = withContext(Dispatchers.IO) {
+        try {
+            val url = URL("$BASE_URL/rooms/access")
+            val connection = url.openConnection() as HttpURLConnection
+            connection.requestMethod = "POST"
+            connection.setRequestProperty("Content-Type", "application/json")
+            connection.doOutput = true
+
+            val requestBody = JSONObject().apply {
+                put("userId", userId)
+                put("roomId", roomId)
+            }
+
+            connection.outputStream.use { os ->
+                os.write(requestBody.toString().toByteArray())
+            }
+
+            val responseCode = connection.responseCode
+            Log.d("ApiClient", "RegisterRoomAccess - Código: $responseCode")
+
+            return@withContext if (responseCode == HttpURLConnection.HTTP_OK) {
+                connection.inputStream.bufferedReader().use { it.readText() }
+            } else {
+                val error = connection.errorStream?.bufferedReader()?.use { it.readText() }
+                Log.e("ApiClient", "Error: $error")
+                null
+            }
+        } catch (e: Exception) {
+            Log.e("ApiClient", "Error en registerRoomAccess: ${e.message}")
+            null
+        }
+    }
 }

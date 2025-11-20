@@ -41,10 +41,13 @@ import com.google.mlkit.vision.common.InputImage
 import java.util.concurrent.Executors
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
+import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import com.example.iot_mobile.network.ApiClient
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -178,12 +181,44 @@ fun QRScreen(navController: NavHostController) {
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun QRScannerView() {
+    val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val cameraPermissionState = rememberPermissionState(Manifest.permission.CAMERA)
+    val scope = rememberCoroutineScope()
 
     var scannedCode by remember { mutableStateOf<String?>(null) }
     var scannedUserId by remember { mutableStateOf<String?>(null) }
     var useFrontCamera by remember { mutableStateOf(false) }
+    var selectedRoomId by remember { mutableStateOf<Int?>(null) }
+    var rooms by remember { mutableStateOf<List<RoomForScanning>>(emptyList()) }
+    var isProcessing by remember { mutableStateOf(false) }
+    var accessResult by remember { mutableStateOf<AccessResult?>(null) }
+
+    // Cargar salas disponibles
+    LaunchedEffect(Unit) {
+        scope.launch {
+            val roomsJson = ApiClient.get("rooms")
+            roomsJson?.let {
+                try {
+                    val jsonArray = org.json.JSONArray(it)
+                    val roomsList = mutableListOf<RoomForScanning>()
+                    for (i in 0 until jsonArray.length()) {
+                        val obj = jsonArray.getJSONObject(i)
+                        roomsList.add(
+                            RoomForScanning(
+                                id = obj.getInt("id"),
+                                name = obj.getString("name"),
+                                code = obj.getString("code")
+                            )
+                        )
+                    }
+                    rooms = roomsList
+                } catch (e: Exception) {
+                    Log.e("QRScannerView", "Error parsing rooms: ${e.message}")
+                }
+            }
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -200,12 +235,71 @@ fun QRScannerView() {
                 color = Color(0xFF212121)
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // ← SELECTOR DE HABITACIÓN
+            if (rooms.isNotEmpty()) {
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth(0.9f)
+                        .clip(RoundedCornerShape(12.dp)),
+                    color = Color.White,
+                    shadowElevation = 2.dp
+                ) {
+                    var expanded by remember { mutableStateOf(false) }
+                    Box {
+                        OutlinedButton(
+                            onClick = { expanded = !expanded },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(4.dp),
+                            border = BorderStroke(1.dp, Color(0xFFE0E0E0))
+                        ) {
+                            Text(
+                                text = selectedRoomId?.let { roomId ->
+                                    rooms.find { it.id == roomId }?.name ?: "Select Room"
+                                } ?: "Select Room",
+                                fontSize = 14.sp,
+                                color = Color(0xFF212121),
+                                modifier = Modifier.weight(1f),
+                                textAlign = TextAlign.Start
+                            )
+                            Icon(
+                                imageVector = Icons.Default.ArrowDropDown,
+                                contentDescription = null,
+                                tint = Color(0xFF757575)
+                            )
+                        }
+
+                        DropdownMenu(
+                            expanded = expanded,
+                            onDismissRequest = { expanded = false },
+                            modifier = Modifier.fillMaxWidth(0.9f)
+                        ) {
+                            rooms.forEach { room ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            text = "${room.name} (${room.code})",
+                                            fontSize = 14.sp
+                                        )
+                                    },
+                                    onClick = {
+                                        selectedRoomId = room.id
+                                        expanded = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+            }
 
             // Vista previa de la cámara
             Surface(
-                modifier = Modifier
-                    .size(300.dp),
+                modifier = Modifier.size(300.dp),
                 shape = RoundedCornerShape(24.dp),
                 shadowElevation = 4.dp
             ) {
@@ -247,43 +341,56 @@ fun QRScannerView() {
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            if (scannedCode != null) {
+            // Mostrar resultado
+            if (accessResult != null) {
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 32.dp),
                     shape = RoundedCornerShape(12.dp),
-                    color = Color(0xFF4CAF50).copy(alpha = 0.1f)
+                    color = if (accessResult!!.success) 
+                        Color(0xFF4CAF50).copy(alpha = 0.1f) 
+                    else 
+                        Color(0xFFEF5350).copy(alpha = 0.1f)
                 ) {
                     Column(
                         modifier = Modifier.padding(16.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = "✓ QR Code Detected",
+                            text = if (accessResult!!.success) 
+                                "✓ ${accessResult!!.action}" 
+                            else 
+                                "✗ ${accessResult!!.message}",
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF4CAF50)
+                            color = if (accessResult!!.success) Color(0xFF4CAF50) else Color(0xFFEF5350)
                         )
 
                         Spacer(modifier = Modifier.height(8.dp))
 
-                        if (scannedUserId != null) {
-                            Text(
-                                text = "User ID: $scannedUserId",
-                                fontSize = 14.sp,
-                                color = Color(0xFF212121),
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
+                        Text(
+                            text = accessResult!!.userName,
+                            fontSize = 14.sp,
+                            color = Color(0xFF212121),
+                            fontWeight = FontWeight.Medium
+                        )
 
                         Spacer(modifier = Modifier.height(4.dp))
 
                         Text(
-                            text = scannedCode!!,
+                            text = "Room: ${accessResult!!.roomName}",
+                            fontSize = 12.sp,
+                            color = Color(0xFF757575)
+                        )
+
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        Text(
+                            text = "Occupancy: ${accessResult!!.currentOccupancy}/${accessResult!!.capacity}",
                             fontSize = 12.sp,
                             color = Color(0xFF757575),
-                            textAlign = TextAlign.Center
+                            fontWeight = FontWeight.SemiBold
                         )
                     }
                 }
@@ -294,25 +401,80 @@ fun QRScannerView() {
                     onClick = {
                         scannedCode = null
                         scannedUserId = null
+                        accessResult = null
                     },
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color(0xFF42A5F5)
                     ),
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 32.dp)
+                        .fillMaxWidth(0.8f)
                         .height(50.dp),
-                    shape = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(12.dp),
+                    enabled = !isProcessing
                 ) {
                     Text(
-                        text = "Scan Another Code",
+                        text = "Scan Another",
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Medium
                     )
                 }
+            } else if (scannedCode != null && selectedRoomId != null) {
+                Button(
+                    onClick = {
+                        isProcessing = true
+                        scope.launch {
+                            val result = ApiClient.registerRoomAccess(
+                                userId = scannedUserId?.toIntOrNull() ?: 0,
+                                roomId = selectedRoomId!!
+                            )
+                            result?.let {
+                                try {
+                                    val json = org.json.JSONObject(it)
+                                    accessResult = AccessResult(
+                                        success = json.getBoolean("success"),
+                                        action = json.getString("action"),
+                                        userName = json.getString("userName"),
+                                        roomName = json.getString("roomName"),
+                                        currentOccupancy = json.getInt("currentOccupancy"),
+                                        capacity = json.getInt("capacity"),
+                                        message = json.optString("message", "")
+                                    )
+                                } catch (e: Exception) {
+                                    Log.e("QRScannerView", "Error parsing response: ${e.message}")
+                                }
+                            }
+                            isProcessing = false
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF42A5F5)
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth(0.8f)
+                        .height(50.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    enabled = !isProcessing
+                ) {
+                    if (isProcessing) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            color = Color.White,
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Text(
+                            text = "Confirm Access",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
             } else {
                 Text(
-                    text = "Place QR code within the frame",
+                    text = if (selectedRoomId == null) 
+                        "Select a room first" 
+                    else 
+                        "Place QR code within the frame",
                     fontSize = 14.sp,
                     color = Color(0xFF757575),
                     textAlign = TextAlign.Center,
@@ -375,6 +537,22 @@ fun QRScannerView() {
         }
     }
 }
+
+data class RoomForScanning(
+    val id: Int,
+    val name: String,
+    val code: String
+)
+
+data class AccessResult(
+    val success: Boolean,
+    val action: String,
+    val userName: String,
+    val roomName: String,
+    val currentOccupancy: Int,
+    val capacity: Int,
+    val message: String
+)
 
 @androidx.annotation.OptIn(ExperimentalGetImage::class)
 @Composable
