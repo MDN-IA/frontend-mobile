@@ -8,8 +8,8 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 object ApiClient {
-    const val BASE_URL = "http://10.0.2.2:4000/api" // Usa la IP local del backend
-    //const val BASE_URL = "http://64.226.100.1:4000/api" // Usa la IP publica (nube) del backend
+    //const val BASE_URL = "http://10.0.2.2:4000/api" // Usa la IP local del backend
+    const val BASE_URL = "http://64.226.100.1:4000/api" // Usa la IP publica (nube) del backend
 
 
     /**

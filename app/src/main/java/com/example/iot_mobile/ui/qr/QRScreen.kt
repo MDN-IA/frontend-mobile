@@ -421,29 +421,101 @@ fun QRScannerView() {
             } else if (scannedCode != null && selectedRoomId != null) {
                 Button(
                     onClick = {
+                        Log.d("QRScannerView", "====== INICIANDO REGISTRO DE ACCESO ======")
+                        Log.d("QRScannerView", "Scanned Code: $scannedCode")
+                        Log.d("QRScannerView", "Scanned User ID: $scannedUserId")
+                        Log.d("QRScannerView", "Selected Room ID: $selectedRoomId")
+                        
+                        val userIdInt = scannedUserId?.toIntOrNull()
+                        Log.d("QRScannerView", "Parsed User ID (Int): $userIdInt")
+                        
+                        if (userIdInt == null) {
+                            Log.e("QRScannerView", "ERROR: No se pudo parsear el ID del usuario")
+                            accessResult = AccessResult(
+                                success = false,
+                                action = "ERROR",
+                                userName = "Error",
+                                roomName = "Error",
+                                currentOccupancy = 0,
+                                capacity = 0,
+                                message = "Invalid user ID: $scannedUserId"
+                            )
+                            return@Button
+                        }
+                        
                         isProcessing = true
                         scope.launch {
-                            val result = ApiClient.registerRoomAccess(
-                                userId = scannedUserId?.toIntOrNull() ?: 0,
-                                roomId = selectedRoomId!!
-                            )
-                            result?.let {
-                                try {
-                                    val json = org.json.JSONObject(it)
+                            try {
+                                Log.d("QRScannerView", "Llamando API con userId=$userIdInt, roomId=$selectedRoomId")
+                                
+                                val result = ApiClient.registerRoomAccess(
+                                    userId = userIdInt,
+                                    roomId = selectedRoomId!!
+                                )
+                                
+                                Log.d("QRScannerView", "Response received: $result")
+                                
+                                if (result != null) {
+                                    try {
+                                        val json = org.json.JSONObject(result)
+                                        Log.d("QRScannerView", "JSON parsed successfully")
+                                        Log.d("QRScannerView", "Success: ${json.getBoolean("success")}")
+                                        Log.d("QRScannerView", "Action: ${json.getString("action")}")
+                                        Log.d("QRScannerView", "UserName: ${json.getString("userName")}")
+                                        Log.d("QRScannerView", "RoomName: ${json.getString("roomName")}")
+                                        Log.d("QRScannerView", "Occupancy: ${json.getInt("currentOccupancy")}/${json.getInt("capacity")}")
+                                        
+                                        accessResult = AccessResult(
+                                            success = json.getBoolean("success"),
+                                            action = json.optString("action", "UNKNOWN"),
+                                            userName = json.optString("userName", "Unknown User"),
+                                            roomName = json.optString("roomName", "Unknown Room"),
+                                            currentOccupancy = json.optInt("currentOccupancy", 0),
+                                            capacity = json.optInt("capacity", 0),
+                                            message = json.optString("message", json.optString("error", "Unknown error"))
+                                        )
+                                        
+                                        Log.d("QRScannerView", "AccessResult set: ${accessResult}")
+                                    } catch (e: Exception) {
+                                        Log.e("QRScannerView", "ERROR parsing JSON: ${e.message}")
+                                        Log.e("QRScannerView", "Response text: $result")
+                                        accessResult = AccessResult(
+                                            success = false,
+                                            action = "ERROR",
+                                            userName = "Parse Error",
+                                            roomName = "Error",
+                                            currentOccupancy = 0,
+                                            capacity = 0,
+                                            message = "Error parsing response: ${e.message}"
+                                        )
+                                    }
+                                } else {
+                                    Log.e("QRScannerView", "Response is null")
                                     accessResult = AccessResult(
-                                        success = json.getBoolean("success"),
-                                        action = json.getString("action"),
-                                        userName = json.getString("userName"),
-                                        roomName = json.getString("roomName"),
-                                        currentOccupancy = json.getInt("currentOccupancy"),
-                                        capacity = json.getInt("capacity"),
-                                        message = json.optString("message", "")
+                                        success = false,
+                                        action = "ERROR",
+                                        userName = "No Response",
+                                        roomName = "Error",
+                                        currentOccupancy = 0,
+                                        capacity = 0,
+                                        message = "No response from server"
                                     )
-                                } catch (e: Exception) {
-                                    Log.e("QRScannerView", "Error parsing response: ${e.message}")
                                 }
+                            } catch (e: Exception) {
+                                Log.e("QRScannerView", "Exception during API call: ${e.message}", e)
+                                accessResult = AccessResult(
+                                    success = false,
+                                    action = "ERROR",
+                                    userName = "Exception",
+                                    roomName = "Error",
+                                    currentOccupancy = 0,
+                                    capacity = 0,
+                                    message = "Exception: ${e.message}"
+                                )
+                            } finally {
+                                isProcessing = false
+                                Log.d("QRScannerView", "====== FIN REGISTRO DE ACCESO ======")
                             }
-                            isProcessing = false
                         }
                     },
                     colors = ButtonDefaults.buttonColors(
@@ -469,6 +541,7 @@ fun QRScannerView() {
                         )
                     }
                 }
+
             } else {
                 Text(
                     text = if (selectedRoomId == null) 
@@ -704,12 +777,24 @@ private fun processImageProxy(
 }
 
 private fun extractUserIdFromQR(qrCode: String): String? {
+    Log.d("QRScanner", "Raw QR Code: '$qrCode'")
+    
     return when {
         qrCode.startsWith("USER_ID:", ignoreCase = true) -> {
-            qrCode.substringAfter("USER_ID:", "").trim()
+            val id = qrCode.substringAfter("USER_ID:", "").trim()
+            Log.d("QRScanner", "Extracted ID from USER_ID format: '$id'")
+            id
         }
-        qrCode.toIntOrNull() != null -> qrCode
-        else -> qrCode.take(50)
+        qrCode.toIntOrNull() != null -> {
+            Log.d("QRScanner", "Extracted ID from number format: '$qrCode'")
+            qrCode
+        }
+        else -> {
+            // Si no es número, intenta extraer los primeros dígitos
+            val digits = qrCode.filter { it.isDigit() }
+            Log.d("QRScanner", "Extracted digits from mixed format: '$digits'")
+            if (digits.isNotEmpty()) digits else null
+        }
     }
 }
 
