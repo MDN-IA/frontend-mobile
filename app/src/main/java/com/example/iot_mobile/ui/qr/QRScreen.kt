@@ -1,4 +1,3 @@
-
 package com.example.iot_mobile.ui.qr
 
 import android.Manifest
@@ -42,9 +41,8 @@ import com.google.mlkit.vision.common.InputImage
 import java.util.concurrent.Executors
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.foundation.Image
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import com.example.iot_mobile.network.ApiClient
 
@@ -60,6 +58,7 @@ fun QRScreen(navController: NavHostController) {
     var selectedTab by remember { mutableStateOf(if (isAdmin) 0 else 1) }
 
     Scaffold(
+        containerColor = Color(0xFFFAFAFA),
         topBar = {
             TopAppBar(
                 title = {
@@ -82,7 +81,8 @@ fun QRScreen(navController: NavHostController) {
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Color.White,
                     titleContentColor = Color(0xFF212121)
-                )
+                ),
+                windowInsets = WindowInsets(0.dp)
             )
         }
     ) { paddingValues ->
@@ -225,7 +225,6 @@ fun QRScannerView() {
                             .clip(RoundedCornerShape(24.dp)),
                         onQrCodeScanned = { code ->
                             scannedCode = code
-                            // Intentar extraer el ID del usuario del código QR
                             scannedUserId = extractUserIdFromQR(code)
                         },
                         lifecycleOwner = lifecycleOwner,
@@ -236,7 +235,6 @@ fun QRScannerView() {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Botón para cambiar entre cámara frontal y trasera
             TextButton(
                 onClick = { useFrontCamera = !useFrontCamera }
             ) {
@@ -249,7 +247,6 @@ fun QRScannerView() {
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Mostrar resultado del escaneo
             if (scannedCode != null) {
                 Surface(
                     modifier = Modifier
@@ -324,62 +321,62 @@ fun QRScannerView() {
             }
 
         } else {
-            // Solicitar permiso de cámara
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center,
-                    modifier = Modifier.fillMaxSize()
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+                modifier = Modifier.fillMaxSize()
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.QrCodeScanner,
+                    contentDescription = "Camera Permission",
+                    modifier = Modifier.size(80.dp),
+                    tint = Color(0xFF42A5F5).copy(alpha = 0.3f)
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Text(
+                    text = "Camera Permission Required",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF212121)
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = "We need camera access to scan QR codes",
+                    fontSize = 14.sp,
+                    color = Color(0xFF757575),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(horizontal = 32.dp)
+                )
+
+                Spacer(modifier = Modifier.height(32.dp))
+
+                Button(
+                    onClick = { cameraPermissionState.launchPermissionRequest() },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF42A5F5)
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 32.dp)
+                        .height(50.dp),
+                    shape = RoundedCornerShape(12.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Outlined.QrCodeScanner,
-                        contentDescription = "Camera Permission",
-                        modifier = Modifier.size(80.dp),
-                        tint = Color(0xFF42A5F5).copy(alpha = 0.3f)
-                    )
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
                     Text(
-                        text = "Camera Permission Required",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF212121)
+                        text = "Grant Camera Permission",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Medium
                     )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Text(
-                        text = "We need camera access to scan QR codes",
-                        fontSize = 14.sp,
-                        color = Color(0xFF757575),
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(horizontal = 32.dp)
-                    )
-
-                    Spacer(modifier = Modifier.height(32.dp))
-
-                    Button(
-                        onClick = { cameraPermissionState.launchPermissionRequest() },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF42A5F5)
-                        ),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 32.dp)
-                            .height(50.dp),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Text(
-                            text = "Grant Camera Permission",
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
                 }
             }
         }
     }
+}
 
+@androidx.annotation.OptIn(ExperimentalGetImage::class)
 @Composable
 fun CameraPreview(
     modifier: Modifier = Modifier,
@@ -497,46 +494,44 @@ fun CameraPreview(
 
 @ExperimentalGetImage
 private fun processImageProxy(
-        barcodeScanner: com.google.mlkit.vision.barcode.BarcodeScanner,
-        imageProxy: ImageProxy,
-        onQrCodeScanned: (String) -> Unit
-    ) {
-        val mediaImage = imageProxy.image
-        if (mediaImage != null) {
-            val image = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
+    barcodeScanner: com.google.mlkit.vision.barcode.BarcodeScanner,
+    imageProxy: ImageProxy,
+    onQrCodeScanned: (String) -> Unit
+) {
+    val mediaImage = imageProxy.image
+    if (mediaImage != null) {
+        val image = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
 
-            barcodeScanner.process(image)
-                .addOnSuccessListener { barcodes ->
-                    for (barcode in barcodes) {
-                        when (barcode.valueType) {
-                            Barcode.TYPE_TEXT, Barcode.TYPE_URL -> {
-                                barcode.rawValue?.let { value ->
-                                    onQrCodeScanned(value)
-                                }
+        barcodeScanner.process(image)
+            .addOnSuccessListener { barcodes ->
+                for (barcode in barcodes) {
+                    when (barcode.valueType) {
+                        Barcode.TYPE_TEXT, Barcode.TYPE_URL -> {
+                            barcode.rawValue?.let { value ->
+                                onQrCodeScanned(value)
                             }
                         }
                     }
                 }
-                .addOnFailureListener {
-                    Log.e("QRScanner", "Error scanning barcode", it)
-                }
-                .addOnCompleteListener {
-                    imageProxy.close()
-                }
-        } else {
-            imageProxy.close()
-        }
+            }
+            .addOnFailureListener {
+                Log.e("QRScanner", "Error scanning barcode", it)
+            }
+            .addOnCompleteListener {
+                imageProxy.close()
+            }
+    } else {
+        imageProxy.close()
     }
+}
 
 private fun extractUserIdFromQR(qrCode: String): String? {
-    // Intentar extraer el ID del usuario del código QR
-    // Formato esperado: "USER_ID:123" o simplemente "123"
     return when {
         qrCode.startsWith("USER_ID:", ignoreCase = true) -> {
             qrCode.substringAfter("USER_ID:", "").trim()
         }
         qrCode.toIntOrNull() != null -> qrCode
-        else -> qrCode.take(50) // Mostrar los primeros 50 caracteres
+        else -> qrCode.take(50)
     }
 }
 
@@ -547,7 +542,6 @@ fun QRDisplayView(userId: Int, userName: String) {
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
-    // Cargar la imagen QR cuando se monta el composable
     LaunchedEffect(userId) {
         isLoading = true
         try {
@@ -590,7 +584,6 @@ fun QRDisplayView(userId: Int, userName: String) {
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        // Mostrar la imagen QR real
         Surface(
             modifier = Modifier
                 .size(280.dp),
@@ -627,7 +620,6 @@ fun QRDisplayView(userId: Int, userName: String) {
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        // User ID y mensaje debajo de la imagen
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
@@ -658,4 +650,3 @@ fun QRDisplayView(userId: Int, userName: String) {
         }
     }
 }
-
