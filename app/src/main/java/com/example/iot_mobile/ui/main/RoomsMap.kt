@@ -1,6 +1,5 @@
 package com.example.iot_mobile.ui.main
 
-import android.se.omapi.Session
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -132,39 +131,26 @@ fun MainScreen(
     }
 
     Scaffold(
+        containerColor = Color(0xFFFAFAFA),
         topBar = {
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                color = Color.White
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color.White)
             ) {
-                Column(
-                    modifier = Modifier.fillMaxWidth()
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 10.dp)
                 ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 20.dp, vertical = 12.dp)
-                    ) {
-                        Text(
-                            text = "Temperature Preference",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = Color(0xFF9E9E9E),
-                            letterSpacing = 1.sp
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.Start
-                        ) {
-                            SinglePreferenceChip(
-                                selectedPreference = selectedPreference
-                            )
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(7.dp))
-                    HorizontalDivider(color = Color(0xFFEEEEEE), thickness = 1.dp)
+                    SinglePreferenceChip(
+                        selectedPreference = selectedPreference
+                    )
                 }
+                HorizontalDivider(
+                    thickness = 0.5.dp,
+                    color = Color(0xFFE0E0E0)
+                )
             }
         }
     ) { paddingValues ->
@@ -303,45 +289,52 @@ fun SinglePreferenceChip(
     selectedPreference: String
 ) {
     val (label, range, color) = when (selectedPreference) {
-        "COLD" -> Triple("COLD", "< 20°C", Color(0xFF42A5F5))
-        "WARM" -> Triple("WARM", "20-23°C", Color(0xFFFFB74D))
-        else -> Triple("HOT", "> 23°C", Color(0xFFFF7043))
+        "COLD" -> Triple("COLD", "< 20°", Color(0xFF42A5F5))
+        "WARM" -> Triple("WARM", "20-23°", Color(0xFFFFB74D))
+        else -> Triple("HOT", "> 23°", Color(0xFFFF7043))
     }
 
     Surface(
-        modifier = Modifier
-            .height(56.dp)
-            .widthIn(min = 160.dp),
-        shape = MaterialTheme.shapes.medium,
-        color = Color.White,
-        border = androidx.compose.foundation.BorderStroke(1.dp, color.copy(alpha = 0.9f)),
-        shadowElevation = 0.dp
+        modifier = Modifier.height(28.dp),
+        shape = MaterialTheme.shapes.small,
+        color = color.copy(alpha = 0.08f),
+        shadowElevation = 0.dp,
+        border = androidx.compose.foundation.BorderStroke(
+            width = 0.5.dp,
+            color = color.copy(alpha = 0.15f)
+        )
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
+            Text(
+                text = "Temperature Preference",
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Medium,
+                color = Color(0xFF757575),
+                letterSpacing = 0.2.sp
+            )
             Box(
                 modifier = Modifier
-                    .size(10.dp)
+                    .size(6.dp)
                     .background(color = color, shape = CircleShape)
             )
-            Spacer(modifier = Modifier.width(10.dp))
-            Column {
-                Text(
-                    text = label,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Color.Black
-                )
-                Text(
-                    text = range,
-                    fontSize = 11.sp,
-                    color = Color(0xFF9E9E9E)
-                )
-            }
+            Text(
+                text = label,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color(0xFF212121),
+                letterSpacing = 0.15.sp
+            )
+            Text(
+                text = range,
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Normal,
+                color = Color(0xFF9E9E9E),
+                letterSpacing = 0.1.sp
+            )
         }
     }
 }
@@ -349,7 +342,7 @@ fun SinglePreferenceChip(
 
 @Composable
 fun RoomCard(room: Room, matchesPreference: Boolean = false, onClick: () -> Unit = {}) {
-    val textColor = if (room.available) Color.Black else Color(0xFF9E9E9E)
+    val textColor = if (room.available) Color(0xFF212121) else Color(0xFF9E9E9E)
     val temperatureColor = when (room.temperatureType) {
         TemperatureType.COLD -> Color(0xFF42A5F5)
         TemperatureType.WARM -> Color(0xFFFFB74D)
@@ -365,15 +358,15 @@ fun RoomCard(room: Room, matchesPreference: Boolean = false, onClick: () -> Unit
             containerColor = Color.White
         ),
         elevation = CardDefaults.cardElevation(
-            defaultElevation = if (matchesPreference && room.available) 2.dp
+            defaultElevation = if (matchesPreference && room.available) 3.dp
             else if (room.available) 1.dp
             else 0.dp
         ),
-        shape = MaterialTheme.shapes.large,
+        shape = MaterialTheme.shapes.medium,
         border = if (matchesPreference && room.available) {
-            androidx.compose.foundation.BorderStroke(2.dp, temperatureColor)
+            androidx.compose.foundation.BorderStroke(1.5.dp, temperatureColor)
         } else {
-            androidx.compose.foundation.BorderStroke(0.5.dp, Color(0xFFEEEEEE))
+            androidx.compose.foundation.BorderStroke(0.5.dp, Color(0xFFE0E0E0))
         }
     ) {
         Box(
@@ -383,54 +376,58 @@ fun RoomCard(room: Room, matchesPreference: Boolean = false, onClick: () -> Unit
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(Color.White.copy(alpha = 0.65f))
+                        .background(Color.White.copy(alpha = 0.7f))
                 )
             }
 
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(16.dp),
+                    .padding(12.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
                     text = room.name,
-                    fontSize = 12.sp,
-                    fontWeight = if (matchesPreference && room.available) FontWeight.SemiBold else FontWeight.Medium,
+                    fontSize = 11.sp,
+                    fontWeight = if (matchesPreference && room.available) FontWeight.Bold else FontWeight.SemiBold,
                     color = textColor,
-                    letterSpacing = 0.8.sp
+                    letterSpacing = 0.3.sp
                 )
 
-                Row(
-                    verticalAlignment = Alignment.Top,
-                    horizontalArrangement = Arrangement.Center
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text(
-                        text = "${room.temp.toInt()}",
-                        fontSize = if (matchesPreference && room.available) 38.sp else 35.sp,
-                        fontWeight = FontWeight.Light,
-                        color = if (room.available) temperatureColor else textColor,
-                        letterSpacing = (-2).sp
-                    )
-                    Text(
-                        text = "°C",
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Light,
-                        color = if (room.available) temperatureColor.copy(alpha = 0.6f) else textColor.copy(alpha = 0.6f)
-                    )
+                    Row(
+                        verticalAlignment = Alignment.Top,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Text(
+                            text = "${room.temp.toInt()}",
+                            fontSize = if (matchesPreference && room.available) 36.sp else 34.sp,
+                            fontWeight = FontWeight.Light,
+                            color = if (room.available) temperatureColor else textColor,
+                            letterSpacing = (-1.5).sp
+                        )
+                        Text(
+                            text = "°",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Light,
+                            color = if (room.available) temperatureColor.copy(alpha = 0.7f) else textColor.copy(alpha = 0.6f)
+                        )
+                    }
                 }
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Absolute.Right,
+                    horizontalArrangement = Arrangement.End,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(6.dp)
+                            .size(5.dp)
                             .background(
-                                color = if (room.available) temperatureColor.copy(alpha = 0.4f) else Color(0xFFBDBDBD),
+                                color = if (room.available) temperatureColor else Color(0xFFBDBDBD),
                                 shape = CircleShape
                             )
                     )

@@ -16,7 +16,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -28,15 +27,12 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.iot_mobile.network.ApiClient
 import com.example.iot_mobile.ui.navigation.NavigationRoutes
-import com.example.iot_mobile.utils.SessionManager
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegisterScreen(navController: NavController) {
-    val context = LocalContext.current
-    val sessionManager = remember { SessionManager(context) }
     val coroutineScope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current
 
@@ -125,7 +121,9 @@ fun RegisterScreen(navController: NavController) {
                     focusedBorderColor = Color(0xFF42A5F5),
                     unfocusedBorderColor = Color(0xFFE0E0E0),
                     focusedLabelColor = Color(0xFF42A5F5),
-                    cursorColor = Color(0xFF42A5F5)
+                    cursorColor = Color(0xFF42A5F5),
+                    focusedTextColor = Color(0xFF212121),
+                    unfocusedTextColor = Color(0xFF212121)
                 ),
                 shape = MaterialTheme.shapes.medium
             )
@@ -161,7 +159,9 @@ fun RegisterScreen(navController: NavController) {
                     focusedBorderColor = Color(0xFF42A5F5),
                     unfocusedBorderColor = Color(0xFFE0E0E0),
                     focusedLabelColor = Color(0xFF42A5F5),
-                    cursorColor = Color(0xFF42A5F5)
+                    cursorColor = Color(0xFF42A5F5),
+                    focusedTextColor = Color(0xFF212121),
+                    unfocusedTextColor = Color(0xFF212121)
                 ),
                 shape = MaterialTheme.shapes.medium
             )
@@ -207,7 +207,9 @@ fun RegisterScreen(navController: NavController) {
                     focusedBorderColor = Color(0xFF42A5F5),
                     unfocusedBorderColor = Color(0xFFE0E0E0),
                     focusedLabelColor = Color(0xFF42A5F5),
-                    cursorColor = Color(0xFF42A5F5)
+                    cursorColor = Color(0xFF42A5F5),
+                    focusedTextColor = Color(0xFF212121),
+                    unfocusedTextColor = Color(0xFF212121)
                 ),
                 shape = MaterialTheme.shapes.medium
             )
@@ -253,7 +255,9 @@ fun RegisterScreen(navController: NavController) {
                     focusedBorderColor = Color(0xFF42A5F5),
                     unfocusedBorderColor = Color(0xFFE0E0E0),
                     focusedLabelColor = Color(0xFF42A5F5),
-                    cursorColor = Color(0xFF42A5F5)
+                    cursorColor = Color(0xFF42A5F5),
+                    focusedTextColor = Color(0xFF212121),
+                    unfocusedTextColor = Color(0xFF212121)
                 ),
                 shape = MaterialTheme.shapes.medium
             )
@@ -365,27 +369,14 @@ fun RegisterScreen(navController: NavController) {
                                                 return@launch
                                             }
 
-                                            // Si el registro fue exitoso, extraer datos del usuario
-                                            val userId = jsonResponse.getInt("id")
+                                            // Si el registro fue exitoso, redirigir al login
                                             val userName = jsonResponse.getString("nombre")
-                                            val userEmail = jsonResponse.getString("correo")
-                                            val tempPref = jsonResponse.optString("preferenciaTemperatura", "COLD")
-                                            val isAdmin = jsonResponse.optBoolean("esAdmin", false)
-
-                                            // Guardar la sesión
-                                            sessionManager.saveLoginSession(
-                                                userId = userId,
-                                                userName = userName,
-                                                userEmail = userEmail,
-                                                tempPreference = tempPref,
-                                                isAdmin = isAdmin
-                                            )
 
                                             Log.d("RegisterScreen", "Usuario registrado exitosamente: $userName")
 
-                                            // Navegar a la pantalla principal
-                                            navController.navigate(NavigationRoutes.MAIN) {
-                                                popUpTo(NavigationRoutes.LOGIN) { inclusive = true }
+                                            // Navegar a la pantalla de login
+                                            navController.navigate(NavigationRoutes.LOGIN) {
+                                                popUpTo(NavigationRoutes.REGISTER) { inclusive = true }
                                             }
                                         } catch (e: Exception) {
                                             Log.e("RegisterScreen", "Error procesando respuesta: ${e.message}")

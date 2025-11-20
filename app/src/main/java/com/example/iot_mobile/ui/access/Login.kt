@@ -110,7 +110,7 @@ fun LoginScreen(navController: NavController) {
 
             // Título
             Text(
-                text = "Welcome Back",
+                text = "Welcome",
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color(0xFF212121)
@@ -154,7 +154,9 @@ fun LoginScreen(navController: NavController) {
                     focusedBorderColor = Color(0xFF42A5F5),
                     unfocusedBorderColor = Color(0xFFE0E0E0),
                     focusedLabelColor = Color(0xFF42A5F5),
-                    cursorColor = Color(0xFF42A5F5)
+                    cursorColor = Color(0xFF42A5F5),
+                    focusedTextColor = Color(0xFF212121),
+                    unfocusedTextColor = Color(0xFF212121)
                 ),
                 shape = MaterialTheme.shapes.medium
             )
@@ -255,7 +257,9 @@ fun LoginScreen(navController: NavController) {
                     focusedBorderColor = Color(0xFF42A5F5),
                     unfocusedBorderColor = Color(0xFFE0E0E0),
                     focusedLabelColor = Color(0xFF42A5F5),
-                    cursorColor = Color(0xFF42A5F5)
+                    cursorColor = Color(0xFF42A5F5),
+                    focusedTextColor = Color(0xFF212121),
+                    unfocusedTextColor = Color(0xFF212121)
                 ),
                 shape = MaterialTheme.shapes.medium
             )
@@ -374,7 +378,8 @@ fun LoginScreen(navController: NavController) {
                     Text(
                         text = "Sign In",
                         fontSize = 16.sp,
-                        fontWeight = FontWeight.SemiBold
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color(0xFF212121)
                     )
                 }
             }
