@@ -777,25 +777,44 @@ private fun processImageProxy(
 }
 
 private fun extractUserIdFromQR(qrCode: String): String? {
+    Log.d("QRScanner", "====== EXTRAYENDO ID ======")
     Log.d("QRScanner", "Raw QR Code: '$qrCode'")
+    Log.d("QRScanner", "QR Code length: ${qrCode.length}")
     
-    return when {
+    val result = when {
+        // Formato: "USER_ID:5"
         qrCode.startsWith("USER_ID:", ignoreCase = true) -> {
-            val id = qrCode.substringAfter("USER_ID:", "").trim()
-            Log.d("QRScanner", "Extracted ID from USER_ID format: '$id'")
-            id
+            val id = qrCode.substringAfter(":", "").trim()
+            Log.d("QRScanner", "Format detected: USER_ID: -> Extracted: '$id'")
+            if (id.toIntOrNull() != null) {
+                Log.d("QRScanner", "✓ Valid ID extracted: '$id'")
+                id
+            } else {
+                Log.d("QRScanner", "✗ Invalid ID format: '$id'")
+                null
+            }
         }
+        // Fallback: si es solo un número
         qrCode.toIntOrNull() != null -> {
-            Log.d("QRScanner", "Extracted ID from number format: '$qrCode'")
+            Log.d("QRScanner", "Format detected: Pure number -> ID: '$qrCode'")
             qrCode
         }
+        // Última opción: extraer dígitos
         else -> {
-            // Si no es número, intenta extraer los primeros dígitos
             val digits = qrCode.filter { it.isDigit() }
-            Log.d("QRScanner", "Extracted digits from mixed format: '$digits'")
-            if (digits.isNotEmpty()) digits else null
+            Log.d("QRScanner", "Format detected: Mixed -> Extracted digits: '$digits'")
+            if (digits.isNotEmpty()) {
+                Log.d("QRScanner", "✓ Digits extracted: '$digits'")
+                digits
+            } else {
+                Log.d("QRScanner", "✗ No digits found")
+                null
+            }
         }
     }
+    
+    Log.d("QRScanner", "====== RESULTADO FINAL: '$result' ======")
+    return result
 }
 
 @Composable
