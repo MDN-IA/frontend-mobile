@@ -15,6 +15,9 @@ class SessionManager(context: Context) {
         private const val KEY_USER_EMAIL = "user_email"
         private const val KEY_USER_TEMP_PREFERENCE = "user_temp_preference"
         private const val KEY_IS_ADMIN = "is_admin"
+        private const val KEY_ACTIVE_ROOM_CODE = "active_room_code"
+
+        
     }
 
     fun saveLoginSession(
@@ -54,6 +57,20 @@ class SessionManager(context: Context) {
     fun updateTempPreference(tempPreference: String) {
         prefs.edit().putString(KEY_USER_TEMP_PREFERENCE, tempPreference).apply()
     }
+
+    fun saveActiveRoomCode(code: String?) {
+        prefs.edit().apply {
+            if (!code.isNullOrEmpty()) {
+                putString(KEY_ACTIVE_ROOM_CODE, code)
+            } else {
+                remove(KEY_ACTIVE_ROOM_CODE)
+            }
+            apply()
+        }
+    }
+
+    fun getActiveRoomCode(): String? = prefs.getString(KEY_ACTIVE_ROOM_CODE, null)
+
 
     fun clearSession() {
         prefs.edit().clear().apply()

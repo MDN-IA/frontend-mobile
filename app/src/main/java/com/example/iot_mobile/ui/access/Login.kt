@@ -210,6 +210,7 @@ fun LoginScreen(navController: NavController) {
                                     if (response != null) {
                                         val jsonResponse = JSONObject(response)
 
+                                        // dentro de keyboardActions -> onDone -> coroutineScope.launch { ... }
                                         if (jsonResponse.has("user")) {
                                             val user = jsonResponse.getJSONObject("user")
                                             val userId = user.getInt("id")
@@ -222,9 +223,19 @@ fun LoginScreen(navController: NavController) {
                                             }
                                             val isAdmin = user.getBoolean("esAdmin")
 
-                                            Log.d("LoginScreen", "Login exitoso: $userName (Admin: $isAdmin, Temp: $userTemp)")
+                                            // NEW: activeRoomCode can be null
+                                            val activeRoomCode = if (user.has("activeRoomCode") && !user.isNull("activeRoomCode")) {
+                                                user.getString("activeRoomCode")
+                                            } else {
+                                                null
+                                            }
 
-                                            // Guardar la sesión
+                                            Log.d(
+                                                "LoginScreen",
+                                                "Login success: $userName (Admin: $isAdmin, Temp: $userTemp, ActiveRoomCode: $activeRoomCode)"
+                                            )
+
+                                            // Save session
                                             sessionManager.saveLoginSession(
                                                 userId = userId,
                                                 userName = userName,
@@ -232,6 +243,9 @@ fun LoginScreen(navController: NavController) {
                                                 tempPreference = userTemp,
                                                 isAdmin = isAdmin
                                             )
+
+                                            // NEW: save current room code (or clear if null)
+                                            sessionManager.saveActiveRoomCode(activeRoomCode)
 
                                             navController.navigate(NavigationRoutes.MAIN) {
                                                 popUpTo(NavigationRoutes.LOGIN) { inclusive = true }
@@ -309,6 +323,7 @@ fun LoginScreen(navController: NavController) {
                                     val jsonResponse = JSONObject(response)
 
                                     // Verificar si el login fue exitoso
+                                    // dentro de Button(onClick = { ... }) -> coroutineScope.launch { ... }
                                     if (jsonResponse.has("user")) {
                                         val user = jsonResponse.getJSONObject("user")
                                         val userId = user.getInt("id")
@@ -321,9 +336,18 @@ fun LoginScreen(navController: NavController) {
                                         }
                                         val isAdmin = user.getBoolean("esAdmin")
 
-                                        Log.d("LoginScreen", "Login exitoso: $userName (Admin: $isAdmin, Temp: $userTemp)")
+                                        // NEW
+                                        val activeRoomCode = if (user.has("activeRoomCode") && !user.isNull("activeRoomCode")) {
+                                            user.getString("activeRoomCode")
+                                        } else {
+                                            null
+                                        }
 
-                                        // Guardar la sesión
+                                        Log.d(
+                                            "LoginScreen",
+                                            "Login success: $userName (Admin: $isAdmin, Temp: $userTemp, ActiveRoomCode: $activeRoomCode)"
+                                        )
+
                                         sessionManager.saveLoginSession(
                                             userId = userId,
                                             userName = userName,
@@ -331,10 +355,9 @@ fun LoginScreen(navController: NavController) {
                                             tempPreference = userTemp,
                                             isAdmin = isAdmin
                                         )
+                                        sessionManager.saveActiveRoomCode(activeRoomCode)
 
-                                        // Navegar a la pantalla principal
                                         navController.navigate(NavigationRoutes.MAIN) {
-                                            // Limpiar el back stack para que no pueda volver al login
                                             popUpTo(NavigationRoutes.LOGIN) { inclusive = true }
                                         }
                                     } else if (jsonResponse.has("error")) {

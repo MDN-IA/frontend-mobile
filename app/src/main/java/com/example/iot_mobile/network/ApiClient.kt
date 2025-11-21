@@ -399,13 +399,15 @@ object ApiClient {
         }
     }
 
+    
     /**
     * Registrar entrada/salida en una habitación
     */
     suspend fun registerRoomAccess(userId: Int, roomCode: String): String? = withContext(Dispatchers.IO) {
+        var connection: HttpURLConnection? = null
         try {
             val url = URL("$BASE_URL/access")
-            val connection = url.openConnection() as HttpURLConnection
+            connection = url.openConnection() as HttpURLConnection
             connection.requestMethod = "POST"
             connection.setRequestProperty("Content-Type", "application/json")
             connection.setRequestProperty("Accept", "application/json")
@@ -418,48 +420,65 @@ object ApiClient {
                 put("roomCode", roomCode)
             }
 
-            Log.d("ApiClient", "==================== REGISTER ROOM ACCESS ====================")
-            Log.d("ApiClient", "URL: ${url}")
-            Log.d("ApiClient", "Request Body: ${requestBody.toString()}")
+            Log.d("ApiClient", "URL: $url")
+            Log.d("ApiClient", "Body: $requestBody")
 
             connection.outputStream.use { os ->
                 os.write(requestBody.toString().toByteArray())
                 os.flush()
             }
 
-            val responseCode = connection.responseCode
-            Log.d("ApiClient", "Response Code: $responseCode")
+            val code = connection.responseCode
+            Log.d("ApiClient", "Response Code: $code")
 
-            // Leer la respuesta (tanto si es exitosa como si es error)
-            val response = when {
-                responseCode in 200..299 -> {
-                    val responseText = connection.inputStream.bufferedReader().use { it.readText() }
-                    Log.d("ApiClient", "Success Response: $responseText")
-                    responseText
-                }
-                responseCode in 400..499 -> {
-                    val errorText = connection.errorStream?.bufferedReader()?.use { it.readText() }
-                    Log.d("ApiClient", "Client Error Response ($responseCode): $errorText")
-                    errorText
-                }
-                responseCode in 500..599 -> {
-                    val errorText = connection.errorStream?.bufferedReader()?.use { it.readText() }
-                    Log.e("ApiClient", "Server Error Response ($responseCode): $errorText")
-                    errorText
-                }
-                else -> {
-                    Log.e("ApiClient", "Unexpected response code: $responseCode")
-                    null
-                }
+            // SIEMPRE devolver el cuerpo (éxito o error)
+            val stream = if (code in 200..299) {
+                connection.inputStream
+            } else {
+                connection.errorStream ?: connection.inputStream
             }
 
-            Log.d("ApiClient", "==================== END REQUEST ====================")
-            return@withContext response
+            val response = stream?.bufferedReader()?.use { it.readText() } ?: ""
+
+            Log.d("ApiClient", "Response Text: $response")
+
+            // NUNCA devuelvas null si hay texto
+            return@withContext if (response.isNotEmpty()) response else null
 
         } catch (e: Exception) {
-            Log.e("ApiClient", "Exception in registerRoomAccess: ${e.message}")
-            e.printStackTrace()
+            Log.e("ApiClient", "Exception: ${e.message}", e)
             null
+        } finally {
+            connection?.disconnect()
+        }
+    }
+
+    /**
+     * Get current user info (including activeRoomCode) by userId
+     */
+    suspend fun getCurrentUser(userId: Int): String? = withContext(Dispatchers.IO) {
+        var connection: HttpURLConnection? = null
+        try {
+            val url = URL("$BASE_URL/users/me?userId=$userId")
+            connection = url.openConnection() as HttpURLConnection
+            connection.requestMethod = "GET"
+            connection.connectTimeout = 10000
+            connection.readTimeout = 10000
+
+            val code = connection.responseCode
+            val stream = if (code in 200..299) {
+                connection.inputStream
+            } else {
+                connection.errorStream ?: connection.inputStream
+            }
+
+            val response = stream?.bufferedReader()?.use { it.readText() } ?: ""
+            if (response.isNotEmpty()) response else null
+        } catch (e: Exception) {
+            Log.e("ApiClient", "getCurrentUser error: ${e.message}", e)
+            null
+        } finally {
+            connection?.disconnect()
         }
     }
 }

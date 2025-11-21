@@ -185,6 +185,7 @@ fun QRScreen(navController: NavHostController) {
 @Composable
 fun QRScannerView() {
     val context = LocalContext.current
+    val sessionManager = remember { SessionManager(context) }   
     val lifecycleOwner = LocalLifecycleOwner.current
     val cameraPermissionState = rememberPermissionState(Manifest.permission.CAMERA)
     val scope = rememberCoroutineScope()
@@ -214,7 +215,8 @@ fun QRScannerView() {
                                 name = obj.getString("name"),
                                 code = obj.getString("code"),
                                 currentOccupancy = obj.optInt("currentOccupancy", 0),
-                                capacity = obj.optInt("capacity", 0)
+                                capacity = obj.optInt("capacity", 0),
+                                light = obj.optDouble("light", 0.0).toFloat()
                             )
                         )
                     }
@@ -474,8 +476,9 @@ fun QRScannerView() {
                                                         shape = RoundedCornerShape(5.dp),
                                                         color = when {
                                                             room.capacity == 0 -> Color(0xFFF5F5F5)
-                                                            occupancyPercentage >= 1.0f -> Color(0xFFFFEBEE)
-                                                            occupancyPercentage >= 0.8f -> Color(0xFFFFF8E1)
+                                                            room.light != null && room.light!! >= 900 -> Color(0xFFF3E5F5)
+                                                            room.currentOccupancy >= room.capacity -> Color(0xFFFFEBEE)
+                                                            room.currentOccupancy >= room.capacity * 0.8 -> Color(0xFFFFF8E1)
                                                             else -> Color(0xFFF1F8F4)
                                                         }
                                                     ) {
@@ -490,8 +493,9 @@ fun QRScannerView() {
                                                                 fontWeight = FontWeight.SemiBold,
                                                                 color = when {
                                                                     room.capacity == 0 -> Color(0xFF999999)
-                                                                    occupancyPercentage >= 1.0f -> Color(0xFFE57373)
-                                                                    occupancyPercentage >= 0.8f -> Color(0xFFFFB74D)
+                                                                    room.light != null && room.light!! >= 900 -> Color(0xFF7B1FA2)
+                                                                    room.currentOccupancy >= room.capacity -> Color(0xFFE57373)
+                                                                    room.currentOccupancy >= room.capacity * 0.8 -> Color(0xFFFFB74D)
                                                                     else -> Color(0xFF66BB6A)
                                                                 }
                                                             )
@@ -499,8 +503,9 @@ fun QRScannerView() {
                                                             Text(
                                                                 text = when {
                                                                     room.capacity == 0 -> "N/A"
-                                                                    occupancyPercentage >= 1.0f -> "Full"
-                                                                    occupancyPercentage >= 0.8f -> "Almost Full"
+                                                                    room.light != null && room.light!! >= 900 -> "No Light"
+                                                                    room.currentOccupancy >= room.capacity -> "Full"
+                                                                    room.currentOccupancy >= room.capacity * 0.8 -> "Almost Full"
                                                                     else -> "Available"
                                                                 },
                                                                 fontSize = 9.sp,
@@ -900,17 +905,18 @@ data class RoomForScanning(
     val name: String,
     val code: String,
     val currentOccupancy: Int = 0,
-    val capacity: Int = 0
+    val capacity: Int = 0,
+    val light: Float? = null
 )
 
 data class AccessResult(
-    val success: Boolean,
-    val action: String,
-    val userName: String,
-    val roomName: String,
-    val currentOccupancy: Int,
-    val capacity: Int,
-    val message: String
+    val success: Boolean = false,
+    val action: String = "ERROR",
+    val userName: String = "Unknown",
+    val roomName: String = "Unknown",
+    val currentOccupancy: Int = 0,
+    val capacity: Int = 0,
+    val message: String = "No response from server"
 )
 
 @androidx.annotation.OptIn(ExperimentalGetImage::class)

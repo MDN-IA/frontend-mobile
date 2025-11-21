@@ -24,6 +24,7 @@ import com.example.iot_mobile.utils.SessionManager
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import org.json.JSONArray
+import org.json.JSONObject
 
 data class Room(
     val id: Int? = null,
@@ -76,18 +77,43 @@ fun MainScreen(
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
+    var activeRoomCode by remember { mutableStateOf(sessionManager.getActiveRoomCode()) }
+    var activeRoomName by remember { mutableStateOf<String?>(null) }
+
     val coroutineScope = rememberCoroutineScope()
 
     // Cargar y refrescar habitaciones desde el backend periódicamente
-    LaunchedEffect(Unit) {
-        while (true) { // Bucle infinito para refrescar continuamente
-            coroutineScope.launch {
-                if (rooms.isEmpty()) { // Muestra el indicador de carga solo la primera vez
-                    isLoading = true
-                }
-                errorMessage = null
 
+    LaunchedEffect(Unit) {
+        while (true) {
+            coroutineScope.launch {
                 try {
+                    // 1) Refrescar activeRoomCode desde backend
+                    val userId = sessionManager.getUserId()
+                    if (userId != -1) {
+                        val userResponse = ApiClient.getCurrentUser(userId)
+                        userResponse?.let {
+                            val json = JSONObject(it)
+                            if (json.has("user")) {
+                                val userJson = json.getJSONObject("user")
+                                val code = if (userJson.has("activeRoomCode") && !userJson.isNull("activeRoomCode")) {
+                                    userJson.getString("activeRoomCode")
+                                } else {
+                                    null
+                                }
+                                // guardar también en prefs por si se usa en otros sitios
+                                sessionManager.saveActiveRoomCode(code)
+                                activeRoomCode = code
+                            }
+                        }
+                    }
+
+                    // 2) Refrescar rooms
+                    if (rooms.isEmpty()) {
+                        isLoading = true
+                    }
+                    errorMessage = null
+
                     val response = ApiClient.get("rooms")
 
                     response?.let {
@@ -98,7 +124,7 @@ fun MainScreen(
                             val jsonObject = jsonArray.getJSONObject(i)
                             val temperature = jsonObject.optDouble("temp", 0.0).toFloat()
                             val light = jsonObject.optDouble("light", 0.0).toFloat()
-                            val humidity = jsonObject.optDouble("hum", 0.0).toFloat() //
+                            val humidity = jsonObject.optDouble("hum", 0.0).toFloat()
 
                             fetchedRooms.add(
                                 Room(
@@ -115,9 +141,16 @@ fun MainScreen(
                         }
 
                         rooms = fetchedRooms
+
+                        // 3) Resolver nombre de la sala actual a partir del código
+                        activeRoomCode?.let { code ->
+                            val found = fetchedRooms.find { it.code == code }
+                            activeRoomName = found?.name
+                        }
+
                         isLoading = false
                     } ?: run {
-                        errorMessage = "Error al obtener las habitaciones"
+                        errorMessage = "Error getting rooms"
                         isLoading = false
                     }
                 } catch (e: Exception) {
@@ -126,7 +159,8 @@ fun MainScreen(
                 }
             }
 
-            delay(30000L) // Espera 10 segundos antes de la siguiente actualización
+            // refresco cada 2 segundos (ajusta si quieres)
+            delay(2000L)
         }
     }
 
@@ -147,6 +181,28 @@ fun MainScreen(
                         selectedPreference = selectedPreference
                     )
                 }
+
+                // NEW: show current room if any
+                if (activeRoomCode != null) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = "You are currently in:",
+                            fontSize = 11.sp,
+                            color = Color(0xFF757575)
+                        )
+                        Text(
+                            text = activeRoomName ?: "Room code: $activeRoomCode",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(0xFF212121)
+                        )
+                    }
+                }
+
                 HorizontalDivider(
                     thickness = 0.5.dp,
                     color = Color(0xFFE0E0E0)
