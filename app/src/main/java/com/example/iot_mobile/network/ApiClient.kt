@@ -402,35 +402,63 @@ object ApiClient {
     /**
     * Registrar entrada/salida en una habitación
     */
-    suspend fun registerRoomAccess(userId: Int, roomId: Int): String? = withContext(Dispatchers.IO) {
+    suspend fun registerRoomAccess(userId: Int, roomCode: String): String? = withContext(Dispatchers.IO) {
         try {
-            val url = URL("$BASE_URL/rooms/access")
+            val url = URL("$BASE_URL/access")
             val connection = url.openConnection() as HttpURLConnection
             connection.requestMethod = "POST"
             connection.setRequestProperty("Content-Type", "application/json")
+            connection.setRequestProperty("Accept", "application/json")
             connection.doOutput = true
+            connection.connectTimeout = 10000
+            connection.readTimeout = 10000
 
             val requestBody = JSONObject().apply {
                 put("userId", userId)
-                put("roomId", roomId)
+                put("roomCode", roomCode)
             }
+
+            Log.d("ApiClient", "==================== REGISTER ROOM ACCESS ====================")
+            Log.d("ApiClient", "URL: ${url}")
+            Log.d("ApiClient", "Request Body: ${requestBody.toString()}")
 
             connection.outputStream.use { os ->
                 os.write(requestBody.toString().toByteArray())
+                os.flush()
             }
 
             val responseCode = connection.responseCode
-            Log.d("ApiClient", "RegisterRoomAccess - Código: $responseCode")
+            Log.d("ApiClient", "Response Code: $responseCode")
 
-            return@withContext if (responseCode == HttpURLConnection.HTTP_OK) {
-                connection.inputStream.bufferedReader().use { it.readText() }
-            } else {
-                val error = connection.errorStream?.bufferedReader()?.use { it.readText() }
-                Log.e("ApiClient", "Error: $error")
-                null
+            // Leer la respuesta (tanto si es exitosa como si es error)
+            val response = when {
+                responseCode in 200..299 -> {
+                    val responseText = connection.inputStream.bufferedReader().use { it.readText() }
+                    Log.d("ApiClient", "Success Response: $responseText")
+                    responseText
+                }
+                responseCode in 400..499 -> {
+                    val errorText = connection.errorStream?.bufferedReader()?.use { it.readText() }
+                    Log.d("ApiClient", "Client Error Response ($responseCode): $errorText")
+                    errorText
+                }
+                responseCode in 500..599 -> {
+                    val errorText = connection.errorStream?.bufferedReader()?.use { it.readText() }
+                    Log.e("ApiClient", "Server Error Response ($responseCode): $errorText")
+                    errorText
+                }
+                else -> {
+                    Log.e("ApiClient", "Unexpected response code: $responseCode")
+                    null
+                }
             }
+
+            Log.d("ApiClient", "==================== END REQUEST ====================")
+            return@withContext response
+
         } catch (e: Exception) {
-            Log.e("ApiClient", "Error en registerRoomAccess: ${e.message}")
+            Log.e("ApiClient", "Exception in registerRoomAccess: ${e.message}")
+            e.printStackTrace()
             null
         }
     }

@@ -9,7 +9,9 @@ import androidx.camera.view.PreviewView
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.outlined.QrCode2
@@ -43,6 +45,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
@@ -190,6 +193,7 @@ fun QRScannerView() {
     var scannedUserId by remember { mutableStateOf<String?>(null) }
     var useFrontCamera by remember { mutableStateOf(false) }
     var selectedRoomId by remember { mutableStateOf<Int?>(null) }
+    var selectedRoomCode by remember { mutableStateOf<String?>(null) }
     var rooms by remember { mutableStateOf<List<RoomForScanning>>(emptyList()) }
     var isProcessing by remember { mutableStateOf(false) }
     var accessResult by remember { mutableStateOf<AccessResult?>(null) }
@@ -208,7 +212,9 @@ fun QRScannerView() {
                             RoomForScanning(
                                 id = obj.getInt("id"),
                                 name = obj.getString("name"),
-                                code = obj.getString("code")
+                                code = obj.getString("code"),
+                                currentOccupancy = obj.optInt("currentOccupancy", 0),
+                                capacity = obj.optInt("capacity", 0)
                             )
                         )
                     }
@@ -223,7 +229,8 @@ fun QRScannerView() {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(top = 48.dp),
+            .verticalScroll(rememberScrollState())
+            .padding(top = 16.dp, bottom = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Top
     ) {
@@ -237,316 +244,593 @@ fun QRScannerView() {
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // ← SELECTOR DE HABITACIÓN
-            if (rooms.isNotEmpty()) {
-                Surface(
-                    modifier = Modifier
-                        .fillMaxWidth(0.9f)
-                        .clip(RoundedCornerShape(12.dp)),
-                    color = Color.White,
-                    shadowElevation = 2.dp
-                ) {
+                // Selector de Sala Mejorado - Diseño Profesional y Minimalista
+                if (rooms.isNotEmpty()) {
                     var expanded by remember { mutableStateOf(false) }
-                    Box {
-                        OutlinedButton(
-                            onClick = { expanded = !expanded },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(4.dp),
-                            border = BorderStroke(1.dp, Color(0xFFE0E0E0))
-                        ) {
-                            Text(
-                                text = selectedRoomId?.let { roomId ->
-                                    rooms.find { it.id == roomId }?.name ?: "Select Room"
-                                } ?: "Select Room",
-                                fontSize = 14.sp,
-                                color = Color(0xFF212121),
-                                modifier = Modifier.weight(1f),
-                                textAlign = TextAlign.Start
-                            )
-                            Icon(
-                                imageVector = Icons.Default.ArrowDropDown,
-                                contentDescription = null,
-                                tint = Color(0xFF757575)
-                            )
-                        }
+                    val selectedRoom = selectedRoomId?.let { roomId -> rooms.find { it.id == roomId } }
 
-                        DropdownMenu(
-                            expanded = expanded,
-                            onDismissRequest = { expanded = false },
-                            modifier = Modifier.fillMaxWidth(0.9f)
-                        ) {
-                            rooms.forEach { room ->
-                                DropdownMenuItem(
-                                    text = {
-                                        Text(
-                                            text = "${room.name} (${room.code})",
-                                            fontSize = 14.sp
-                                        )
-                                    },
-                                    onClick = {
-                                        selectedRoomId = room.id
-                                        expanded = false
-                                    }
-                                )
-                            }
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-            }
-
-            // Vista previa de la cámara
-            Surface(
-                modifier = Modifier.size(300.dp),
-                shape = RoundedCornerShape(24.dp),
-                shadowElevation = 4.dp
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .clip(RoundedCornerShape(24.dp))
-                        .border(
-                            width = 4.dp,
-                            color = Color(0xFF42A5F5),
-                            shape = RoundedCornerShape(24.dp)
-                        )
-                ) {
-                    CameraPreview(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clip(RoundedCornerShape(24.dp)),
-                        onQrCodeScanned = { code ->
-                            scannedCode = code
-                            scannedUserId = extractUserIdFromQR(code)
-                        },
-                        lifecycleOwner = lifecycleOwner,
-                        useFrontCamera = useFrontCamera
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            TextButton(
-                onClick = { useFrontCamera = !useFrontCamera }
-            ) {
-                Text(
-                    text = if (useFrontCamera) "Switch to Back Camera" else "Switch to Front Camera",
-                    color = Color(0xFF42A5F5),
-                    fontSize = 13.sp
-                )
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Mostrar resultado
-            if (accessResult != null) {
-                Surface(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 32.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    color = if (accessResult!!.success) 
-                        Color(0xFF4CAF50).copy(alpha = 0.1f) 
-                    else 
-                        Color(0xFFEF5350).copy(alpha = 0.1f)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(0.92f),
+                        shape = RoundedCornerShape(12.dp),
+                        color = Color.White,
+                        shadowElevation = 1.dp,
+                        border = BorderStroke(1.dp, Color(0xFFEEEEEE))
                     ) {
-                        Text(
-                            text = if (accessResult!!.success) 
-                                "✓ ${accessResult!!.action}" 
-                            else 
-                                "✗ ${accessResult!!.message}",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = if (accessResult!!.success) Color(0xFF4CAF50) else Color(0xFFEF5350)
-                        )
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        Text(
-                            text = accessResult!!.userName,
-                            fontSize = 14.sp,
-                            color = Color(0xFF212121),
-                            fontWeight = FontWeight.Medium
-                        )
-
-                        Spacer(modifier = Modifier.height(4.dp))
-
-                        Text(
-                            text = "Room: ${accessResult!!.roomName}",
-                            fontSize = 12.sp,
-                            color = Color(0xFF757575)
-                        )
-
-                        Spacer(modifier = Modifier.height(4.dp))
-
-                        Text(
-                            text = "Occupancy: ${accessResult!!.currentOccupancy}/${accessResult!!.capacity}",
-                            fontSize = 12.sp,
-                            color = Color(0xFF757575),
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Button(
-                    onClick = {
-                        scannedCode = null
-                        scannedUserId = null
-                        accessResult = null
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF42A5F5)
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth(0.8f)
-                        .height(50.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    enabled = !isProcessing
-                ) {
-                    Text(
-                        text = "Scan Another",
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-            } else if (scannedCode != null && selectedRoomId != null) {
-                Button(
-                    onClick = {
-                        Log.d("QRScannerView", "====== INICIANDO REGISTRO DE ACCESO ======")
-                        Log.d("QRScannerView", "Scanned Code: $scannedCode")
-                        Log.d("QRScannerView", "Scanned User ID: $scannedUserId")
-                        Log.d("QRScannerView", "Selected Room ID: $selectedRoomId")
-                        
-                        val userIdInt = scannedUserId?.toIntOrNull()
-                        Log.d("QRScannerView", "Parsed User ID (Int): $userIdInt")
-                        
-                        if (userIdInt == null) {
-                            Log.e("QRScannerView", "ERROR: No se pudo parsear el ID del usuario")
-                            accessResult = AccessResult(
-                                success = false,
-                                action = "ERROR",
-                                userName = "Error",
-                                roomName = "Error",
-                                currentOccupancy = 0,
-                                capacity = 0,
-                                message = "Invalid user ID: $scannedUserId"
-                            )
-                            return@Button
-                        }
-                        
-                        isProcessing = true
-                        scope.launch {
-                            try {
-                                Log.d("QRScannerView", "Llamando API con userId=$userIdInt, roomId=$selectedRoomId")
-                                
-                                val result = ApiClient.registerRoomAccess(
-                                    userId = userIdInt,
-                                    roomId = selectedRoomId!!
+                        Box {
+                            OutlinedButton(
+                                onClick = { expanded = !expanded },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(68.dp)
+                                    .padding(4.dp),
+                                shape = RoundedCornerShape(10.dp),
+                                border = BorderStroke(
+                                    width = 1.5.dp,
+                                    color = if (selectedRoomId != null) Color(0xFF42A5F5) else Color(0xFFE8E8E8)
+                                ),
+                                colors = ButtonDefaults.outlinedButtonColors(
+                                    containerColor = Color.White
                                 )
-                                
-                                Log.d("QRScannerView", "Response received: $result")
-                                
-                                if (result != null) {
-                                    try {
-                                        val json = org.json.JSONObject(result)
-                                        Log.d("QRScannerView", "JSON parsed successfully")
-                                        Log.d("QRScannerView", "Success: ${json.getBoolean("success")}")
-                                        Log.d("QRScannerView", "Action: ${json.getString("action")}")
-                                        Log.d("QRScannerView", "UserName: ${json.getString("userName")}")
-                                        Log.d("QRScannerView", "RoomName: ${json.getString("roomName")}")
-                                        Log.d("QRScannerView", "Occupancy: ${json.getInt("currentOccupancy")}/${json.getInt("capacity")}")
-                                        
-                                        accessResult = AccessResult(
-                                            success = json.getBoolean("success"),
-                                            action = json.optString("action", "UNKNOWN"),
-                                            userName = json.optString("userName", "Unknown User"),
-                                            roomName = json.optString("roomName", "Unknown Room"),
-                                            currentOccupancy = json.optInt("currentOccupancy", 0),
-                                            capacity = json.optInt("capacity", 0),
-                                            message = json.optString("message", json.optString("error", "Unknown error"))
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Column(
+                                        modifier = Modifier.weight(1f),
+                                        verticalArrangement = Arrangement.Center
+                                    ) {
+                                        Text(
+                                            text = "Select Room",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            color = Color(0xFFAAAAAA),
+                                            letterSpacing = 0.3.sp
                                         )
-                                        
-                                        Log.d("QRScannerView", "AccessResult set: ${accessResult}")
-                                    } catch (e: Exception) {
-                                        Log.e("QRScannerView", "ERROR parsing JSON: ${e.message}")
-                                        Log.e("QRScannerView", "Response text: $result")
-                                        accessResult = AccessResult(
-                                            success = false,
-                                            action = "ERROR",
-                                            userName = "Parse Error",
-                                            roomName = "Error",
-                                            currentOccupancy = 0,
-                                            capacity = 0,
-                                            message = "Error parsing response: ${e.message}"
-                                        )
+                                        Spacer(modifier = Modifier.height(4.dp))
+
+                                        if (selectedRoom != null) {
+                                            Text(
+                                                text = selectedRoom.name,
+                                                fontSize = 15.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = Color(0xFF2C2C2C),
+                                                letterSpacing = 0.sp
+                                            )
+                                            Spacer(modifier = Modifier.height(2.dp))
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                            ) {
+                                                Surface(
+                                                    shape = RoundedCornerShape(4.dp),
+                                                    color = Color(0xFFF8F8F8)
+                                                ) {
+                                                    Text(
+                                                        text = selectedRoom.code,
+                                                        fontSize = 10.sp,
+                                                        fontWeight = FontWeight.Medium,
+                                                        color = Color(0xFF6B6B6B),
+                                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                                    )
+                                                }
+
+                                                Surface(
+                                                    shape = RoundedCornerShape(4.dp),
+                                                    color = when {
+                                                        selectedRoom.capacity == 0 -> Color(0xFFF5F5F5)
+                                                        selectedRoom.currentOccupancy >= selectedRoom.capacity -> Color(0xFFFFEBEE)
+                                                        selectedRoom.currentOccupancy >= selectedRoom.capacity * 0.8 -> Color(0xFFFFF8E1)
+                                                        else -> Color(0xFFF1F8F4)
+                                                    }
+                                                ) {
+                                                    Text(
+                                                        text = "${selectedRoom.currentOccupancy}/${selectedRoom.capacity}",
+                                                        fontSize = 10.sp,
+                                                        fontWeight = FontWeight.SemiBold,
+                                                        color = when {
+                                                            selectedRoom.capacity == 0 -> Color(0xFF999999)
+                                                            selectedRoom.currentOccupancy >= selectedRoom.capacity -> Color(0xFFE57373)
+                                                            selectedRoom.currentOccupancy >= selectedRoom.capacity * 0.8 -> Color(0xFFFFB74D)
+                                                            else -> Color(0xFF66BB6A)
+                                                        },
+                                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                                    )
+                                                }
+                                            }
+                                        } else {
+                                            Text(
+                                                text = "Tap to choose a room",
+                                                fontSize = 14.sp,
+                                                fontWeight = FontWeight.Normal,
+                                                color = Color(0xFFBBBBBB),
+                                                letterSpacing = 0.sp
+                                            )
+                                        }
                                     }
-                                } else {
-                                    Log.e("QRScannerView", "Response is null")
-                                    accessResult = AccessResult(
-                                        success = false,
-                                        action = "ERROR",
-                                        userName = "No Response",
-                                        roomName = "Error",
-                                        currentOccupancy = 0,
-                                        capacity = 0,
-                                        message = "No response from server"
+
+                                    Icon(
+                                        imageVector = Icons.Default.ArrowDropDown,
+                                        contentDescription = null,
+                                        tint = if (selectedRoomId != null) Color(0xFF42A5F5) else Color(0xFFCCCCCC),
+                                        modifier = Modifier.size(26.dp)
                                     )
                                 }
-                            } catch (e: Exception) {
-                                Log.e("QRScannerView", "Exception during API call: ${e.message}", e)
-                                accessResult = AccessResult(
-                                    success = false,
-                                    action = "ERROR",
-                                    userName = "Exception",
-                                    roomName = "Error",
-                                    currentOccupancy = 0,
-                                    capacity = 0,
-                                    message = "Exception: ${e.message}"
+                            }
+
+                            DropdownMenu(
+                                expanded = expanded,
+                                onDismissRequest = { expanded = false },
+                                modifier = Modifier
+                                    .fillMaxWidth(0.88f)
+                                    .heightIn(max = 450.dp)
+                                    .background(Color.White)
+                            ) {
+                                // Título del menú
+                                Surface(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    color = Color.White
+                                ) {
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 16.dp, vertical = 12.dp)
+                                    ) {
+                                        Text(
+                                            text = "Available Rooms",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = Color(0xFF2C2C2C),
+                                            letterSpacing = 0.3.sp
+                                        )
+                                        Spacer(modifier = Modifier.height(2.dp))
+                                        Text(
+                                            text = "${rooms.size} rooms",
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Normal,
+                                            color = Color(0xFFAAAAAA),
+                                            letterSpacing = 0.sp
+                                        )
+                                    }
+                                }
+
+                                HorizontalDivider(
+                                    thickness = 1.dp,
+                                    color = Color(0xFFF5F5F5)
                                 )
-                            } finally {
-                                isProcessing = false
-                                Log.d("QRScannerView", "====== FIN REGISTRO DE ACCESO ======")
+
+                                // Mostrar todas las salas - el DropdownMenu ya es scrolleable automáticamente
+                                rooms.forEachIndexed { index, room ->
+                                    val isSelected = selectedRoomId == room.id
+                                    val occupancyPercentage = if (room.capacity > 0) {
+                                        (room.currentOccupancy.toFloat() / room.capacity.toFloat()).coerceIn(0f, 1f)
+                                    } else 0f
+
+                                    DropdownMenuItem(
+                                        text = {
+                                            Column(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(vertical = 8.dp)
+                                            ) {
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.SpaceBetween
+                                                ) {
+                                                    Row(
+                                                        verticalAlignment = Alignment.CenterVertically,
+                                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                                        modifier = Modifier.weight(1f)
+                                                    ) {
+                                                        Text(
+                                                            text = room.name,
+                                                            fontSize = 14.sp,
+                                                            fontWeight = FontWeight.SemiBold,
+                                                            color = Color(0xFF2C2C2C),
+                                                            letterSpacing = 0.sp
+                                                        )
+                                                    }
+
+                                                    if (isSelected) {
+                                                        Surface(
+                                                            shape = RoundedCornerShape(12.dp),
+                                                            color = Color(0xFFE3F2FD)
+                                                        ) {
+                                                            Text(
+                                                                text = "Selected",
+                                                                fontSize = 9.sp,
+                                                                fontWeight = FontWeight.SemiBold,
+                                                                color = Color(0xFF42A5F5),
+                                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                                                letterSpacing = 0.2.sp
+                                                            )
+                                                        }
+                                                    }
+                                                }
+
+                                                Spacer(modifier = Modifier.height(8.dp))
+
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                                ) {
+                                                    Surface(
+                                                        shape = RoundedCornerShape(5.dp),
+                                                        color = Color(0xFFF8F8F8)
+                                                    ) {
+                                                        Text(
+                                                            text = room.code,
+                                                            fontSize = 10.sp,
+                                                            fontWeight = FontWeight.Medium,
+                                                            color = Color(0xFF6B6B6B),
+                                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
+                                                            letterSpacing = 0.2.sp
+                                                        )
+                                                    }
+
+                                                    Surface(
+                                                        shape = RoundedCornerShape(5.dp),
+                                                        color = when {
+                                                            room.capacity == 0 -> Color(0xFFF5F5F5)
+                                                            occupancyPercentage >= 1.0f -> Color(0xFFFFEBEE)
+                                                            occupancyPercentage >= 0.8f -> Color(0xFFFFF8E1)
+                                                            else -> Color(0xFFF1F8F4)
+                                                        }
+                                                    ) {
+                                                        Row(
+                                                            verticalAlignment = Alignment.CenterVertically,
+                                                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
+                                                        ) {
+                                                            Text(
+                                                                text = "${room.currentOccupancy}/${room.capacity}",
+                                                                fontSize = 10.sp,
+                                                                fontWeight = FontWeight.SemiBold,
+                                                                color = when {
+                                                                    room.capacity == 0 -> Color(0xFF999999)
+                                                                    occupancyPercentage >= 1.0f -> Color(0xFFE57373)
+                                                                    occupancyPercentage >= 0.8f -> Color(0xFFFFB74D)
+                                                                    else -> Color(0xFF66BB6A)
+                                                                }
+                                                            )
+
+                                                            Text(
+                                                                text = when {
+                                                                    room.capacity == 0 -> "N/A"
+                                                                    occupancyPercentage >= 1.0f -> "Full"
+                                                                    occupancyPercentage >= 0.8f -> "Almost Full"
+                                                                    else -> "Available"
+                                                                },
+                                                                fontSize = 9.sp,
+                                                                fontWeight = FontWeight.Normal,
+                                                                color = Color(0xFFAAAAAA),
+                                                                letterSpacing = 0.sp
+                                                            )
+                                                        }
+                                                    }
+                                                }
+
+                                                Spacer(modifier = Modifier.height(8.dp))
+
+                                                // Barra de progreso de ocupación - Diseño minimalista
+                                                Box(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .height(3.dp)
+                                                        .background(
+                                                            color = Color(0xFFF5F5F5),
+                                                            shape = RoundedCornerShape(1.5.dp)
+                                                        )
+                                                ) {
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .fillMaxWidth(occupancyPercentage)
+                                                            .fillMaxHeight()
+                                                            .background(
+                                                                color = when {
+                                                                    room.capacity == 0 -> Color(0xFFE0E0E0)
+                                                                    occupancyPercentage >= 1.0f -> Color(0xFFE57373)
+                                                                    occupancyPercentage >= 0.8f -> Color(0xFFFFB74D)
+                                                                    occupancyPercentage >= 0.5f -> Color(0xFFFFD54F)
+                                                                    else -> Color(0xFF66BB6A)
+                                                                },
+                                                                shape = RoundedCornerShape(1.5.dp)
+                                                            )
+                                                    )
+                                                }
+                                            }
+                                        },
+                                        onClick = {
+                                            selectedRoomId = room.id
+                                            selectedRoomCode = room.code
+                                            expanded = false
+                                        },
+                                        modifier = Modifier
+                                            .padding(horizontal = 8.dp, vertical = 0.dp)
+                                    )
+
+                                    if (index < rooms.size - 1) {
+                                        HorizontalDivider(
+                                            modifier = Modifier.padding(horizontal = 16.dp),
+                                            thickness = 0.5.dp,
+                                            color = Color(0xFFF5F5F5)
+                                        )
+                                    }
+                                }
                             }
                         }
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF42A5F5)
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth(0.8f)
-                        .height(50.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    enabled = !isProcessing
+                    }
+
+                    Spacer(modifier = Modifier.height(20.dp))
+                }
+
+                // Vista previa de la cámara
+                Surface(
+                    modifier = Modifier.size(300.dp),
+                    shape = RoundedCornerShape(24.dp),
+                    shadowElevation = 4.dp
                 ) {
-                    if (isProcessing) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            color = Color.White,
-                            strokeWidth = 2.dp
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(RoundedCornerShape(24.dp))
+                            .border(
+                                width = 4.dp,
+                                color = Color(0xFF42A5F5),
+                                shape = RoundedCornerShape(24.dp)
+                            )
+                    ) {
+                        CameraPreview(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clip(RoundedCornerShape(24.dp)),
+                            onQrCodeScanned = { code ->
+                                scannedCode = code
+                                scannedUserId = extractUserIdFromQR(code)
+                            },
+                            lifecycleOwner = lifecycleOwner,
+                            useFrontCamera = useFrontCamera
                         )
-                    } else {
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                TextButton(
+                    onClick = { useFrontCamera = !useFrontCamera }
+                ) {
+                    Text(
+                        text = if (useFrontCamera) "Switch to Back Camera" else "Switch to Front Camera",
+                        color = Color(0xFF42A5F5),
+                        fontSize = 13.sp
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Mostrar resultado
+                if (accessResult != null) {
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 32.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        color = if (accessResult!!.success)
+                            Color(0xFF4CAF50).copy(alpha = 0.1f)
+                        else
+                            Color(0xFFEF5350).copy(alpha = 0.1f)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = if (accessResult!!.success)
+                                    "✓ ${accessResult!!.action}"
+                                else
+                                    "✗ ${accessResult!!.message}",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (accessResult!!.success) Color(0xFF4CAF50) else Color(0xFFEF5350)
+                            )
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            Text(
+                                text = accessResult!!.userName,
+                                fontSize = 14.sp,
+                                color = Color(0xFF212121),
+                                fontWeight = FontWeight.Medium
+                            )
+
+                            Spacer(modifier = Modifier.height(4.dp))
+
+                            Text(
+                                text = "Room: ${accessResult!!.roomName}",
+                                fontSize = 12.sp,
+                                color = Color(0xFF757575)
+                            )
+
+                            Spacer(modifier = Modifier.height(4.dp))
+
+                            Text(
+                                text = "Occupancy: ${accessResult!!.currentOccupancy}/${accessResult!!.capacity}",
+                                fontSize = 12.sp,
+                                color = Color(0xFF757575),
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Button(
+                        onClick = {
+                            scannedCode = null
+                            scannedUserId = null
+                            accessResult = null
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF42A5F5)
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth(0.8f)
+                            .height(50.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        enabled = !isProcessing
+                    ) {
                         Text(
-                            text = "Confirm Access",
+                            text = "Scan Another",
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Medium
                         )
                     }
-                }
+                } else if (scannedCode != null && selectedRoomId != null && selectedRoomCode != null) {
+                    Button(
+                        onClick = {
+                            Log.d("QRScannerView", "====== INICIANDO REGISTRO DE ACCESO ======")
+                            Log.d("QRScannerView", "Scanned Code: $scannedCode")
+                            Log.d("QRScannerView", "Scanned User ID: $scannedUserId")
+                            Log.d("QRScannerView", "Selected Room ID: $selectedRoomId")
+                            Log.d("QRScannerView", "Selected Room Code: $selectedRoomCode")
+
+                            val userIdInt = scannedUserId?.toIntOrNull()
+                            Log.d("QRScannerView", "Parsed User ID (Int): $userIdInt")
+
+                            if (userIdInt == null) {
+                                Log.e("QRScannerView", "ERROR: No se pudo parsear el ID del usuario")
+                                accessResult = AccessResult(
+                                    success = false,
+                                    action = "ERROR",
+                                    userName = "Error",
+                                    roomName = "Error",
+                                    currentOccupancy = 0,
+                                    capacity = 0,
+                                    message = "Invalid user ID: $scannedUserId"
+                                )
+                                return@Button
+                            }
+
+                            isProcessing = true
+                            scope.launch {
+                                try {
+                                    Log.d("QRScannerView", "Llamando API con userId=$userIdInt, roomCode=$selectedRoomCode")
+
+                                    val result = ApiClient.registerRoomAccess(
+                                        userId = userIdInt,
+                                        roomCode = selectedRoomCode!!
+                                    )
+
+                                    Log.d("QRScannerView", "Response received: $result")
+
+                                    if (result != null) {
+                                        try {
+                                            val json = org.json.JSONObject(result)
+                                            Log.d("QRScannerView", "JSON parsed successfully")
+
+                                            val success = json.optBoolean("success", false)
+                                            val action = json.optString("action", "UNKNOWN")
+                                            val message = json.optString("message", json.optString("error", "Unknown error"))
+
+                                            Log.d("QRScannerView", "Success: $success")
+                                            Log.d("QRScannerView", "Action: $action")
+                                            Log.d("QRScannerView", "Message: $message")
+
+                                            if (json.has("userName")) {
+                                                Log.d("QRScannerView", "UserName: ${json.getString("userName")}")
+                                            }
+                                            if (json.has("roomName")) {
+                                                Log.d("QRScannerView", "RoomName: ${json.getString("roomName")}")
+                                            }
+                                            if (json.has("currentOccupancy") && json.has("capacity")) {
+                                                Log.d("QRScannerView", "Occupancy: ${json.getInt("currentOccupancy")}/${json.getInt("capacity")}")
+                                            }
+
+                                            accessResult = AccessResult(
+                                                success = success,
+                                                action = action,
+                                                userName = json.optString("userName", "User"),
+                                                roomName = json.optString("roomName", "Room"),
+                                                currentOccupancy = json.optInt("currentOccupancy", 0),
+                                                capacity = json.optInt("capacity", 0),
+                                                message = message
+                                            )
+
+                                            Log.d("QRScannerView", "AccessResult created: success=$success, action=$action")
+                                        } catch (e: Exception) {
+                                            Log.e("QRScannerView", "ERROR parsing JSON: ${e.message}")
+                                            Log.e("QRScannerView", "Response text: $result")
+                                            e.printStackTrace()
+                                            accessResult = AccessResult(
+                                                success = false,
+                                                action = "ERROR",
+                                                userName = "Parse Error",
+                                                roomName = "Error",
+                                                currentOccupancy = 0,
+                                                capacity = 0,
+                                                message = "Error parsing response: ${e.message}"
+                                            )
+                                        }
+                                    } else {
+                                        Log.e("QRScannerView", "Response is null")
+                                        accessResult = AccessResult(
+                                            success = false,
+                                            action = "ERROR",
+                                            userName = "No Response",
+                                            roomName = "Error",
+                                            currentOccupancy = 0,
+                                            capacity = 0,
+                                            message = "No response from server"
+                                        )
+                                    }
+                                } catch (e: Exception) {
+                                    Log.e("QRScannerView", "Exception during API call: ${e.message}", e)
+                                    accessResult = AccessResult(
+                                        success = false,
+                                        action = "ERROR",
+                                        userName = "Exception",
+                                        roomName = "Error",
+                                        currentOccupancy = 0,
+                                        capacity = 0,
+                                        message = "Exception: ${e.message}"
+                                    )
+                                } finally {
+                                    isProcessing = false
+                                    Log.d("QRScannerView", "====== FIN REGISTRO DE ACCESO ======")
+                                }
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF42A5F5)
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth(0.8f)
+                            .height(50.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        enabled = !isProcessing
+                    ) {
+                        if (isProcessing) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                color = Color.White,
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Text(
+                                text = "Confirm Access",
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
 
             } else {
                 Text(
-                    text = if (selectedRoomId == null) 
-                        "Select a room first" 
-                    else 
+                    text = if (selectedRoomId == null || selectedRoomCode == null)
+                        "Select a room first"
+                    else
                         "Place QR code within the frame",
                     fontSize = 14.sp,
                     color = Color(0xFF757575),
@@ -561,60 +845,62 @@ fun QRScannerView() {
                 verticalArrangement = Arrangement.Center,
                 modifier = Modifier.fillMaxSize()
             ) {
-                Icon(
-                    imageVector = Icons.Outlined.QrCodeScanner,
-                    contentDescription = "Camera Permission",
-                    modifier = Modifier.size(80.dp),
-                    tint = Color(0xFF42A5F5).copy(alpha = 0.3f)
-                )
+            Icon(
+                imageVector = Icons.Outlined.QrCodeScanner,
+                contentDescription = "Camera Permission",
+                modifier = Modifier.size(80.dp),
+                tint = Color(0xFF42A5F5).copy(alpha = 0.3f)
+            )
 
-                Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
+            Text(
+                text = "Camera Permission Required",
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF212121)
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = "We need camera access to scan QR codes",
+                fontSize = 14.sp,
+                color = Color(0xFF757575),
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(horizontal = 32.dp)
+            )
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            Button(
+                onClick = { cameraPermissionState.launchPermissionRequest() },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF42A5F5)
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 32.dp)
+                    .height(50.dp),
+                shape = RoundedCornerShape(12.dp)
+            ) {
                 Text(
-                    text = "Camera Permission Required",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF212121)
+                    text = "Grant Camera Permission",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Medium
                 )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Text(
-                    text = "We need camera access to scan QR codes",
-                    fontSize = 14.sp,
-                    color = Color(0xFF757575),
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(horizontal = 32.dp)
-                )
-
-                Spacer(modifier = Modifier.height(32.dp))
-
-                Button(
-                    onClick = { cameraPermissionState.launchPermissionRequest() },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF42A5F5)
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 32.dp)
-                        .height(50.dp),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Text(
-                        text = "Grant Camera Permission",
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
             }
         }
     }
+}
 }
 
 data class RoomForScanning(
     val id: Int,
     val name: String,
-    val code: String
+    val code: String,
+    val currentOccupancy: Int = 0,
+    val capacity: Int = 0
 )
 
 data class AccessResult(
@@ -780,7 +1066,7 @@ private fun extractUserIdFromQR(qrCode: String): String? {
     Log.d("QRScanner", "====== EXTRAYENDO ID ======")
     Log.d("QRScanner", "Raw QR Code: '$qrCode'")
     Log.d("QRScanner", "QR Code length: ${qrCode.length}")
-    
+
     val result = when {
         // Formato: "USER_ID:5"
         qrCode.startsWith("USER_ID:", ignoreCase = true) -> {
@@ -812,7 +1098,7 @@ private fun extractUserIdFromQR(qrCode: String): String? {
             }
         }
     }
-    
+
     Log.d("QRScanner", "====== RESULTADO FINAL: '$result' ======")
     return result
 }
