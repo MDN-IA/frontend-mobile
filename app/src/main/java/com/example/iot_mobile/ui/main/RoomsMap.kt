@@ -1,6 +1,7 @@
 package com.example.iot_mobile.ui.main
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
@@ -8,7 +9,10 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material3.*
+import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -172,33 +176,21 @@ fun MainScreen(
                     .fillMaxWidth()
                     .background(Color.White)
             ) {
-                Box(
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 10.dp)
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     SinglePreferenceChip(
                         selectedPreference = selectedPreference
                     )
-                }
 
-                // NEW: show current room if any
-                if (activeRoomCode != null) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 4.dp)
-                    ) {
-                        Text(
-                            text = "You are currently in:",
-                            fontSize = 11.sp,
-                            color = Color(0xFF757575)
-                        )
-                        Text(
-                            text = activeRoomName ?: "Room code: $activeRoomCode",
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = Color(0xFF212121)
+                    // NEW: show current room if any
+                    if (activeRoomCode != null) {
+                        CurrentRoomChip(
+                            roomName = activeRoomName ?: "Room $activeRoomCode"
                         )
                     }
                 }
@@ -207,6 +199,37 @@ fun MainScreen(
                     thickness = 0.5.dp,
                     color = Color(0xFFE0E0E0)
                 )
+            }
+        },
+        floatingActionButton = {
+            Surface(
+                shape = CircleShape,
+                color = Color.White,
+                shadowElevation = 3.dp,
+                border = BorderStroke(1.5.dp, Color(0xFFA1A1A1)),
+                modifier = Modifier.size(64.dp)
+            ) {
+                FloatingActionButton(
+                    onClick = {
+                        navController.navigate(NavigationRoutes.RECOMMENDATIONS)
+                    },
+                    containerColor = Color.White,
+                    contentColor = Color(0xFF212121),
+                    elevation = FloatingActionButtonDefaults.elevation(
+                        defaultElevation = 0.dp,
+                        pressedElevation = 0.dp,
+                        hoveredElevation = 0.dp
+                    ),
+                    shape = CircleShape,
+                    modifier = Modifier.size(64.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.AutoAwesome,
+                        contentDescription = "AI Recommendation",
+                        modifier = Modifier.size(28.dp),
+                        tint = Color(0xFF212121)
+                    )
+                }
             }
         }
     ) { paddingValues ->
@@ -326,6 +349,7 @@ fun MainScreen(
                             RoomCard(
                                 room = room,
                                 matchesPreference = room.temperatureType.name == selectedPreference,
+                                isCurrentRoom = room.code == activeRoomCode,
                                 onClick = {
                                     room.id?.let { id ->
                                         onNavigate(NavigationRoutes.roomDetails(id))
@@ -355,7 +379,7 @@ fun SinglePreferenceChip(
         shape = MaterialTheme.shapes.small,
         color = color.copy(alpha = 0.08f),
         shadowElevation = 0.dp,
-        border = androidx.compose.foundation.BorderStroke(
+        border = BorderStroke(
             width = 0.5.dp,
             color = color.copy(alpha = 0.15f)
         )
@@ -395,9 +419,58 @@ fun SinglePreferenceChip(
     }
 }
 
+@Composable
+fun CurrentRoomChip(
+    roomName: String
+) {
+    val color = Color(0xFF4CAF50)
+
+    Surface(
+        modifier = Modifier.height(28.dp),
+        shape = MaterialTheme.shapes.small,
+        color = color.copy(alpha = 0.08f),
+        shadowElevation = 0.dp,
+        border = BorderStroke(
+            width = 0.5.dp,
+            color = color.copy(alpha = 0.15f)
+        )
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Text(
+                text = "Currently in",
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Medium,
+                color = Color(0xFF757575),
+                letterSpacing = 0.2.sp
+            )
+            Box(
+                modifier = Modifier
+                    .size(6.dp)
+                    .background(color = color, shape = CircleShape)
+            )
+            Text(
+                text = roomName,
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color(0xFF212121),
+                letterSpacing = 0.15.sp
+            )
+        }
+    }
+}
+
 
 @Composable
-fun RoomCard(room: Room, matchesPreference: Boolean = false, onClick: () -> Unit = {}) {
+fun RoomCard(
+    room: Room,
+    matchesPreference: Boolean = false,
+    isCurrentRoom: Boolean = false,
+    onClick: () -> Unit = {}
+) {
     val textColor = if (room.available) Color(0xFF212121) else Color(0xFF9E9E9E)
     val temperatureColor = when (room.temperatureType) {
         TemperatureType.COLD -> Color(0xFF42A5F5)
@@ -411,18 +484,21 @@ fun RoomCard(room: Room, matchesPreference: Boolean = false, onClick: () -> Unit
             .fillMaxWidth()
             .clickable { onClick() },
         colors = CardDefaults.cardColors(
-            containerColor = Color.White
+            containerColor = if (isCurrentRoom) Color(0xFFF1F8F4) else Color.White
         ),
         elevation = CardDefaults.cardElevation(
-            defaultElevation = if (matchesPreference && room.available) 3.dp
+            defaultElevation = if (isCurrentRoom) 4.dp
+            else if (matchesPreference && room.available) 3.dp
             else if (room.available) 1.dp
             else 0.dp
         ),
         shape = MaterialTheme.shapes.medium,
-        border = if (matchesPreference && room.available) {
-            androidx.compose.foundation.BorderStroke(1.5.dp, temperatureColor)
+        border = if (isCurrentRoom) {
+            BorderStroke(2.dp, Color(0xFF4CAF50))
+        } else if (matchesPreference && room.available) {
+            BorderStroke(1.5.dp, temperatureColor)
         } else {
-            androidx.compose.foundation.BorderStroke(0.5.dp, Color(0xFFE0E0E0))
+            BorderStroke(0.5.dp, Color(0xFFE0E0E0))
         }
     ) {
         Box(
@@ -466,7 +542,7 @@ fun RoomCard(room: Room, matchesPreference: Boolean = false, onClick: () -> Unit
                             letterSpacing = (-1.5).sp
                         )
                         Text(
-                            text = "°",
+                            text = "°C",
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Light,
                             color = if (room.available) temperatureColor.copy(alpha = 0.7f) else textColor.copy(alpha = 0.6f)

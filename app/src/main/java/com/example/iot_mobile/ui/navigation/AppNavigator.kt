@@ -14,6 +14,7 @@ import com.example.iot_mobile.ui.auth.ResetPasswordScreen
 import com.example.iot_mobile.ui.main.MainScreen
 import com.example.iot_mobile.ui.profile.ProfileScreen
 import com.example.iot_mobile.ui.qr.QRScreen
+import com.example.iot_mobile.ui.recommendRoom.RecommendationScreen
 import com.example.iot_mobile.ui.roomdetails.RoomDetailsScreen
 
 object NavigationRoutes {
@@ -22,6 +23,7 @@ object NavigationRoutes {
     const val LOGIN = "login"
     const val PROFILE = "profile"
     const val QR = "qr"
+    const val RECOMMENDATIONS = "recommendations"
     const val ROOM_DETAILS = "room_details/{roomId}"
     const val FORGOT_PASSWORD = "forgot-password"
     const val ENTER_RESET_CODE = "enter-reset-code"
@@ -79,6 +81,10 @@ fun AppNavigator(
 
         composable(NavigationRoutes.QR) {
             QRScreen(navController = navController)
+        }
+
+        composable(NavigationRoutes.RECOMMENDATIONS) {
+            RecommendationScreen(navController = navController)
         }
 
         composable(
