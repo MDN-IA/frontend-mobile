@@ -103,7 +103,7 @@ fun RoomDetailsScreen(
                     isLoading = false
                 }
             }
-            delay(30000L)
+            delay(2000L)
         }
     }
 
