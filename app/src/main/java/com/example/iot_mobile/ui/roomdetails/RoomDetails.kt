@@ -451,13 +451,24 @@ fun SimpleBarChart(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Bottom
             ) {
-                Text(
-                    text = "${String.format("%.1f", value)}°",
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Color(0xFF616161),
+                Row(
+                    verticalAlignment = Alignment.Top,
                     modifier = Modifier.padding(bottom = 6.dp)
-                )
+                ) {
+                    Text(
+                        text = String.format("%.1f", value),
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color(0xFF616161)
+                    )
+                    Text(
+                        text = "°C",
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Normal,
+                        color = Color(0xFF757575),
+                        modifier = Modifier.offset(y = (-2).dp)
+                    )
+                }
                 Box(
                     modifier = Modifier
                         .width(32.dp)

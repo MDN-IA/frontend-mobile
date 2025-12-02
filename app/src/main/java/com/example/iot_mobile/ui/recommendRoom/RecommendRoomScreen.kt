@@ -46,6 +46,7 @@ fun RecommendationScreen(navController: NavHostController) {
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .background(Color(0xFFFAFAFA))
             .verticalScroll(rememberScrollState())
     ) {
         // Encabezado con padding específico
@@ -281,7 +282,8 @@ fun RecommendationCard(
                     .fillMaxWidth()
                     .height(52.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF000000)
+                    containerColor = Color(0xFF000000),
+                    contentColor = Color.White
                 ),
                 shape = RoundedCornerShape(12.dp),
                 elevation = ButtonDefaults.buttonElevation(
@@ -293,6 +295,7 @@ fun RecommendationCard(
                     text = "View Details",
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
+                    color = Color.White,
                     letterSpacing = 0.5.sp
                 )
             }

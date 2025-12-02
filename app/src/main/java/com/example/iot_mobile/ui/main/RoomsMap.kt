@@ -12,7 +12,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material3.*
-import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -168,8 +167,9 @@ fun MainScreen(
         }
     }
 
-    Scaffold(
-        containerColor = Color(0xFFFAFAFA),
+    Box(modifier = Modifier.fillMaxSize()) {
+        Scaffold(
+            containerColor = Color(0xFFFAFAFA),
         topBar = {
             Column(
                 modifier = Modifier
@@ -195,41 +195,11 @@ fun MainScreen(
                     }
                 }
 
+
                 HorizontalDivider(
                     thickness = 0.5.dp,
                     color = Color(0xFFE0E0E0)
                 )
-            }
-        },
-        floatingActionButton = {
-            Surface(
-                shape = CircleShape,
-                color = Color.White,
-                shadowElevation = 3.dp,
-                border = BorderStroke(1.5.dp, Color(0xFFA1A1A1)),
-                modifier = Modifier.size(64.dp)
-            ) {
-                FloatingActionButton(
-                    onClick = {
-                        navController.navigate(NavigationRoutes.RECOMMENDATIONS)
-                    },
-                    containerColor = Color.White,
-                    contentColor = Color(0xFF212121),
-                    elevation = FloatingActionButtonDefaults.elevation(
-                        defaultElevation = 0.dp,
-                        pressedElevation = 0.dp,
-                        hoveredElevation = 0.dp
-                    ),
-                    shape = CircleShape,
-                    modifier = Modifier.size(64.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.AutoAwesome,
-                        contentDescription = "AI Recommendation",
-                        modifier = Modifier.size(28.dp),
-                        tint = Color(0xFF212121)
-                    )
-                }
             }
         }
     ) { paddingValues ->
@@ -336,12 +306,13 @@ fun MainScreen(
                 }
 
                 else -> {
-                    // Grid de habitaciones
+                    // Grid de habitaciones con padding inferior para la barra de IA
                     LazyVerticalGrid(
                         columns = GridCells.Fixed(3),
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(16.dp),
+                            .padding(start = 16.dp, end = 16.dp, top = 5.dp),
+                        contentPadding = PaddingValues(bottom = 80.dp),
                         horizontalArrangement = Arrangement.spacedBy(16.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
@@ -359,6 +330,43 @@ fun MainScreen(
                         }
                     }
                 }
+            }
+        }
+    }
+
+        // Barra flotante de IA pegada al fondo
+        Surface(
+            shape = MaterialTheme.shapes.small,
+            color = Color.White,
+            shadowElevation = 4.dp,
+            border = BorderStroke(0.5.dp, Color(0xFFE8E8E8)),
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth(0.75f)
+                .padding(bottom = 16.dp)
+                .clickable { navController.navigate(NavigationRoutes.RECOMMENDATIONS) }
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 11.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.AutoAwesome,
+                    contentDescription = "AI Recommendation",
+                    modifier = Modifier.size(17.dp),
+                    tint = Color(0xFF1A1A1A)
+                )
+                Spacer(modifier = Modifier.width(9.dp))
+                Text(
+                    text = "AI Recommendation",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color(0xFF1A1A1A),
+                    letterSpacing = 0.1.sp
+                )
             }
         }
     }
