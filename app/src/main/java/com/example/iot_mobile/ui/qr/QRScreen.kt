@@ -695,7 +695,7 @@ fun QRScannerView() {
                 } else if (scannedCode != null && selectedRoomId != null && selectedRoomCode != null) {
                     Button(
                         onClick = {
-                            Log.d("QRScannerView", "====== INICIANDO REGISTRO DE ACCESO ======")
+                            Log.d("QRScannerView", "====== STARTING ACCESS REGISTRATION ======")
                             Log.d("QRScannerView", "Scanned Code: $scannedCode")
                             Log.d("QRScannerView", "Scanned User ID: $scannedUserId")
                             Log.d("QRScannerView", "Selected Room ID: $selectedRoomId")
@@ -705,7 +705,7 @@ fun QRScannerView() {
                             Log.d("QRScannerView", "Parsed User ID (Int): $userIdInt")
 
                             if (userIdInt == null) {
-                                Log.e("QRScannerView", "ERROR: No se pudo parsear el ID del usuario")
+                                Log.e("QRScannerView", "ERROR: Could not parse user ID")
                                 accessResult = AccessResult(
                                     success = false,
                                     action = "ERROR",
@@ -721,7 +721,7 @@ fun QRScannerView() {
                             isProcessing = true
                             scope.launch {
                                 try {
-                                    Log.d("QRScannerView", "Llamando API con userId=$userIdInt, roomCode=$selectedRoomCode")
+                                    Log.d("QRScannerView", "Calling API with userId=$userIdInt, roomCode=$selectedRoomCode")
 
                                     val result = ApiClient.registerRoomAccess(
                                         userId = userIdInt,
@@ -803,7 +803,7 @@ fun QRScannerView() {
                                     )
                                 } finally {
                                     isProcessing = false
-                                    Log.d("QRScannerView", "====== FIN REGISTRO DE ACCESO ======")
+                                    Log.d("QRScannerView", "====== END ACCESS REGISTRATION ======")
                                 }
                             }
                         },
@@ -1069,7 +1069,7 @@ private fun processImageProxy(
 }
 
 private fun extractUserIdFromQR(qrCode: String): String? {
-    Log.d("QRScanner", "====== EXTRAYENDO ID ======")
+    Log.d("QRScanner", "====== EXTRACTION OF ID ======")
     Log.d("QRScanner", "Raw QR Code: '$qrCode'")
     Log.d("QRScanner", "QR Code length: ${qrCode.length}")
 
@@ -1105,7 +1105,7 @@ private fun extractUserIdFromQR(qrCode: String): String? {
         }
     }
 
-    Log.d("QRScanner", "====== RESULTADO FINAL: '$result' ======")
+    Log.d("QRScanner", "====== FINAL RESULT: '$result' ======")
     return result
 }
 
@@ -1124,11 +1124,11 @@ fun QRDisplayView(userId: Int, userName: String) {
                 qrImageBitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
                 errorMessage = null
             } else {
-                errorMessage = "Error al obtener la imagen QR"
+                errorMessage = "Error obtaining QR image"
             }
         } catch (e: Exception) {
             errorMessage = "Error: ${e.message}"
-            Log.e("QRDisplayView", "Error cargando QR", e)
+            Log.e("QRDisplayView", "Error loading QR", e)
         } finally {
             isLoading = false
         }

@@ -95,7 +95,7 @@ fun RoomDetailsScreen(
 
                         isLoading = false
                     } ?: run {
-                        errorMessage = "Error al obtener los datos de la habitación"
+                        errorMessage = "Error obtaining room data"
                         isLoading = false
                     }
                 } catch (e: Exception) {
@@ -139,13 +139,13 @@ fun RoomDetailsScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = errorMessage ?: "Error desconocido",
+                        text = errorMessage ?: "Unknown error",
                         color = Color.Red,
                         fontSize = 16.sp
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     Button(onClick = { navController.popBackStack() }) {
-                        Text("Volver")
+                        Text("Back")
                     }
                 }
             }
@@ -418,7 +418,7 @@ fun SimpleBarChart(
     color: Color
 ) {
     if (data.isEmpty()) {
-        Text("Sin datos disponibles", color = Color.Gray)
+        Text("No data available", color = Color.Gray)
         return
     }
 

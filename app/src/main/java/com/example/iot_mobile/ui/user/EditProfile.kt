@@ -104,12 +104,12 @@ fun ProfileScreen(navController: NavController, onLogout: () -> Unit = {}) {
                     sessionManager.updateTempPreference(nextPref)
                     // Actualizar el estado de la UI
                     userProfile = userProfile.copy(temperaturePreference = nextPref)
-                    Log.d("ProfileScreen", "Preferencia actualizada a: $nextPref")
+                    Log.d("ProfileScreen", "Preference updated to: $nextPref")
                 } else {
-                    Log.e("ProfileScreen", "Error al actualizar preferencia en el servidor")
+                    Log.e("ProfileScreen", "Error updating preference on server")
                 }
             } catch (e: Exception) {
-                Log.e("ProfileScreen", "Error al cambiar preferencia: ${e.message}")
+                Log.e("ProfileScreen", "Error changing preference: ${e.message}")
             } finally {
                 isUpdating = false
             }
@@ -166,7 +166,7 @@ fun ProfileScreen(navController: NavController, onLogout: () -> Unit = {}) {
                     // Actualizar el estado de la UI
                     userProfile = userProfile.copy(name = newName, email = newEmail)
 
-                    Log.d("ProfileScreen", "Perfil actualizado exitosamente")
+                    Log.d("ProfileScreen", "Profile updated successfully")
                     showEditDialog = false
                     currentPassword = ""
                 } else {
@@ -174,7 +174,7 @@ fun ProfileScreen(navController: NavController, onLogout: () -> Unit = {}) {
                     showError = true
                 }
             } catch (e: Exception) {
-                Log.e("ProfileScreen", "Error al actualizar perfil: ${e.message}")
+                Log.e("ProfileScreen", "Error updating profile: ${e.message}")
                 errorMessage = "An error occurred. Please try again."
                 showError = true
             } finally {
@@ -238,7 +238,7 @@ fun ProfileScreen(navController: NavController, onLogout: () -> Unit = {}) {
                 val response = ApiClient.updateUser(userId, updateData)
 
                 if (response != null) {
-                    Log.d("ProfileScreen", "Contraseña actualizada exitosamente")
+                    Log.d("ProfileScreen", "Password updated successfully")
                     showChangePasswordDialog = false
                     currentPassword = ""
                     newPassword = ""
@@ -248,7 +248,7 @@ fun ProfileScreen(navController: NavController, onLogout: () -> Unit = {}) {
                     showError = true
                 }
             } catch (e: Exception) {
-                Log.e("ProfileScreen", "Error al cambiar contraseña: ${e.message}")
+                Log.e("ProfileScreen", "Error changing password: ${e.message}")
                 errorMessage = "An error occurred. Please try again."
                 showError = true
             } finally {
@@ -284,8 +284,8 @@ fun ProfileScreen(navController: NavController, onLogout: () -> Unit = {}) {
                 val response = ApiClient.deleteUser(userId)
 
                 if (response != null) {
-                    Log.d("ProfileScreen", "Cuenta eliminada exitosamente")
-                    // Limpiar la sesión y hacer logout
+                    Log.d("ProfileScreen", "Account deleted successfully")
+                    // Clear session and logout
                     sessionManager.clearSession()
                     showDeleteAccountDialog = false
                     onLogout()
@@ -294,7 +294,7 @@ fun ProfileScreen(navController: NavController, onLogout: () -> Unit = {}) {
                     showError = true
                 }
             } catch (e: Exception) {
-                Log.e("ProfileScreen", "Error al eliminar cuenta: ${e.message}")
+                Log.e("ProfileScreen", "Error deleting account: ${e.message}")
                 errorMessage = "An error occurred. Please try again."
                 showError = true
             } finally {

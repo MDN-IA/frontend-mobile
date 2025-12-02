@@ -372,14 +372,14 @@ fun RegisterScreen(navController: NavController) {
                                             // Si el registro fue exitoso, redirigir al login
                                             val userName = jsonResponse.getString("nombre")
 
-                                            Log.d("RegisterScreen", "Usuario registrado exitosamente: $userName")
+                                            Log.d("RegisterScreen", "User registered successfully: $userName")
 
                                             // Navegar a la pantalla de login
                                             navController.navigate(NavigationRoutes.LOGIN) {
                                                 popUpTo(NavigationRoutes.REGISTER) { inclusive = true }
                                             }
                                         } catch (e: Exception) {
-                                            Log.e("RegisterScreen", "Error procesando respuesta: ${e.message}")
+                                            Log.e("RegisterScreen", "Error processing response: ${e.message}")
                                             errorMessage = "Error processing registration data"
                                             isLoading = false
                                         }
@@ -388,7 +388,7 @@ fun RegisterScreen(navController: NavController) {
                                         isLoading = false
                                     }
                                 } catch (e: Exception) {
-                                    Log.e("RegisterScreen", "Error en registro: ${e.message}")
+                                    Log.e("RegisterScreen", "Error in registration: ${e.message}")
                                     errorMessage = "An error occurred. Please try again."
                                     isLoading = false
                                 }

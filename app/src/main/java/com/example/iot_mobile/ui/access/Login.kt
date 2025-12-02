@@ -362,19 +362,19 @@ fun LoginScreen(navController: NavController) {
                                         }
                                     } else if (jsonResponse.has("error")) {
                                         errorMessage = jsonResponse.getString("error")
-                                        Log.e("LoginScreen", "Error en login: $errorMessage")
+                                        Log.e("LoginScreen", "Error in login: $errorMessage")
                                     } else {
                                         errorMessage = "Unexpected response from server"
-                                        Log.e("LoginScreen", "Respuesta inesperada: $response")
+                                        Log.e("LoginScreen", "Unexpected response: $response")
                                     }
                                 } else {
                                     errorMessage = "Please, fill correctly your credentials"
-                                    Log.e("LoginScreen", "No se pudo conectar con el servidor")
+                                    Log.e("LoginScreen", "Could not connect to server")
                                 }
 
                             } catch (e: Exception) {
                                 errorMessage = "An error occurred: ${e.message}"
-                                Log.e("LoginScreen", "Excepción en login", e)
+                                Log.e("LoginScreen", "Exception in login", e)
                             } finally {
                                 isLoading = false
                             }

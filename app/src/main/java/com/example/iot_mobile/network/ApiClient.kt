@@ -28,8 +28,8 @@ object ApiClient {
             val responseCode = connection.responseCode
             val response = connection.inputStream.bufferedReader().readText()
 
-            println("Código de respuesta: $responseCode")
-            println("Respuesta del servidor: $response")
+            println("Response code: $responseCode")
+            println("Response of server: $response")
 
             return@withContext if (responseCode == HttpURLConnection.HTTP_OK) {
                 response
@@ -38,7 +38,7 @@ object ApiClient {
             }
         } catch (e: Exception) {
             e.printStackTrace()
-            println("Error al conectar con el backend: ${e.message}")
+            println("Error to connect with backend: ${e.message}")
             null
         }
     }
@@ -59,16 +59,16 @@ object ApiClient {
 
             return@withContext if (responseCode == HttpURLConnection.HTTP_OK) {
                 val response = connection.inputStream.bufferedReader().readText()
-                println("Código de respuesta: $responseCode")
-                println("Respuesta del servidor (Room $roomId): $response")
+                println("Response code: $responseCode")
+                println("Response of server (Room $roomId): $response")
                 response
             } else {
-                Log.e("ApiClient", "Error al obtener habitación: código $responseCode")
+                Log.e("ApiClient", "Error to get the room: code $responseCode")
                 null
             }
         } catch (e: Exception) {
             e.printStackTrace()
-            Log.e("ApiClient", "Error al conectar con el backend: ${e.message}")
+            Log.e("ApiClient", "Error to connect with backend: ${e.message}")
             null
         }
     }
@@ -95,19 +95,19 @@ object ApiClient {
             }
 
             val responseCode = connection.responseCode
-            Log.d("ApiClient", "Código de respuesta: $responseCode")
+            Log.d("ApiClient", "Response code: $responseCode")
 
             return@withContext if (responseCode in 200..299) { // Acepta códigos 2XX
                 connection.inputStream.bufferedReader()
                     .use { it.readText() } // Lee la respuesta correctamente
             } else {
-                Log.e("ApiClient", "Error en la respuesta del servidor: código $responseCode")
+                Log.e("ApiClient", "Error in the response from the server: code $responseCode")
                 connection.errorStream?.bufferedReader()
                     ?.use { it.readText() } // Leer el mensaje de error si lo hay
             }
         } catch (e: Exception) {
             e.printStackTrace()
-            Log.e("ApiClient", "Error de conexión con el backend: ${e.message}")
+            Log.e("ApiClient", "Error of conexion with backend: ${e.message}")
             null
         }
     }
@@ -148,20 +148,20 @@ object ApiClient {
             }
 
             val responseCode = connection.responseCode
-            Log.d("ApiClient", "CreateUser - Código de respuesta: $responseCode")
+            Log.d("ApiClient", "CreateUser - Response code: $responseCode")
 
             return@withContext if (responseCode == HttpURLConnection.HTTP_CREATED) {
                 val response = connection.inputStream.bufferedReader().use { it.readText() }
-                Log.d("ApiClient", "Usuario creado exitosamente: $response")
+                Log.d("ApiClient", "User created successfully: $response")
                 response
             } else {
                 val errorResponse = connection.errorStream?.bufferedReader()?.use { it.readText() }
-                Log.e("ApiClient", "Error al crear usuario: código $responseCode - $errorResponse")
+                Log.e("ApiClient", "Error creating user: code $responseCode - $errorResponse")
                 errorResponse // Retornar el mensaje de error para poder mostrarlo
             }
         } catch (e: Exception) {
             e.printStackTrace()
-            Log.e("ApiClient", "Error al conectar con el backend en createUser: ${e.message}")
+            Log.e("ApiClient", "Error connecting to backend in createUser: ${e.message}")
             null
         }
     }
@@ -192,20 +192,20 @@ object ApiClient {
             }
 
             val responseCode = connection.responseCode
-            Log.d("ApiClient", "Login - Código de respuesta: $responseCode")
+            Log.d("ApiClient", "Login - Code response: $responseCode")
 
             return@withContext if (responseCode == HttpURLConnection.HTTP_OK) {
                 val response = connection.inputStream.bufferedReader().use { it.readText() }
-                Log.d("ApiClient", "Login exitoso: $response")
+                Log.d("ApiClient", "Login successful: $response")
                 response
             } else {
                 val errorResponse = connection.errorStream?.bufferedReader()?.use { it.readText() }
-                Log.e("ApiClient", "Error en login: código $responseCode - $errorResponse")
+                Log.e("ApiClient", "Error in login: code $responseCode - $errorResponse")
                 null
             }
         } catch (e: Exception) {
             e.printStackTrace()
-            Log.e("ApiClient", "Error al conectar con el backend en login: ${e.message}")
+            Log.e("ApiClient", "Error connecting to backend in login: ${e.message}")
             null
         }
     }
@@ -231,20 +231,20 @@ object ApiClient {
             }
 
             val responseCode = connection.responseCode
-            Log.d("ApiClient", "UpdateUser - Código de respuesta: $responseCode")
+            Log.d("ApiClient", "UpdateUser - Code response: $responseCode")
 
             return@withContext if (responseCode == HttpURLConnection.HTTP_OK) {
                 val response = connection.inputStream.bufferedReader().use { it.readText() }
-                Log.d("ApiClient", "Usuario actualizado exitosamente: $response")
+                Log.d("ApiClient", "User updated successfully: $response")
                 response
             } else {
                 val errorResponse = connection.errorStream?.bufferedReader()?.use { it.readText() }
-                Log.e("ApiClient", "Error al actualizar usuario: código $responseCode - $errorResponse")
+                Log.e("ApiClient", "Error updating user: code $responseCode - $errorResponse")
                 null
             }
         } catch (e: Exception) {
             e.printStackTrace()
-            Log.e("ApiClient", "Error al conectar con el backend en updateUser: ${e.message}")
+            Log.e("ApiClient", "Error connecting to backend in updateUser: ${e.message}")
             null
         }
     }
@@ -262,20 +262,20 @@ object ApiClient {
             connection.setRequestProperty("Accept", "application/json")
 
             val responseCode = connection.responseCode
-            Log.d("ApiClient", "DeleteUser - Código de respuesta: $responseCode")
+            Log.d("ApiClient", "DeleteUser - Code response: $responseCode")
 
             return@withContext if (responseCode == HttpURLConnection.HTTP_OK) {
                 val response = connection.inputStream.bufferedReader().use { it.readText() }
-                Log.d("ApiClient", "Usuario eliminado exitosamente: $response")
+                Log.d("ApiClient", "User deleted successfully: $response")
                 response
             } else {
                 val errorResponse = connection.errorStream?.bufferedReader()?.use { it.readText() }
-                Log.e("ApiClient", "Error al eliminar usuario: código $responseCode - $errorResponse")
+                Log.e("ApiClient", "Error deleting user: code $responseCode - $errorResponse")
                 null
             }
         } catch (e: Exception) {
             e.printStackTrace()
-            Log.e("ApiClient", "Error al conectar con el backend en deleteUser: ${e.message}")
+            Log.e("ApiClient", "Error connecting to backend in deleteUser: ${e.message}")
             null
         }
     }
@@ -293,19 +293,19 @@ object ApiClient {
             connection.setRequestProperty("Accept", "image/png")
 
             val responseCode = connection.responseCode
-            Log.d("ApiClient", "GetQRImage - Código de respuesta: $responseCode")
+            Log.d("ApiClient", "GetQRImage - Code response: $responseCode")
 
             return@withContext if (responseCode == HttpURLConnection.HTTP_OK) {
                 val imageBytes = connection.inputStream.readBytes()
-                Log.d("ApiClient", "QR obtenido exitosamente: ${imageBytes.size} bytes")
+                Log.d("ApiClient", "QR obtained successfully: ${imageBytes.size} bytes")
                 imageBytes
             } else {
-                Log.e("ApiClient", "Error al obtener QR: código $responseCode")
+                Log.e("ApiClient", "Error obtaining QR: code $responseCode")
                 null
             }
         } catch (e: Exception) {
             e.printStackTrace()
-            Log.e("ApiClient", "Error al conectar con el backend en getQRImage: ${e.message}")
+            Log.e("ApiClient", "Error connecting to backend in getQRImage: ${e.message}")
             null
         }
     }
@@ -330,7 +330,7 @@ object ApiClient {
             }
 
             val responseCode = connection.responseCode
-            Log.d("ApiClient", "ForgotPassword - Código: $responseCode")
+            Log.d("ApiClient", "ForgotPassword - Code: $responseCode")
 
             return@withContext if (responseCode == HttpURLConnection.HTTP_OK) {
                 connection.inputStream.bufferedReader().use { it.readText() }
@@ -340,7 +340,7 @@ object ApiClient {
                 null
             }
         } catch (e: Exception) {
-            Log.e("ApiClient", "Error en forgotPassword: ${e.message}")
+            Log.e("ApiClient", "Error in forgotPassword: ${e.message}")
             null
         }
     }
@@ -362,7 +362,7 @@ object ApiClient {
                 null
             }
         } catch (e: Exception) {
-            Log.e("ApiClient", "Error en verifyResetToken: ${e.message}")
+            Log.e("ApiClient", "Error in verifyResetToken: ${e.message}")
             null
         }
     }
@@ -395,7 +395,7 @@ object ApiClient {
                 null
             }
         } catch (e: Exception) {
-            Log.e("ApiClient", "Error en resetPassword: ${e.message}")
+            Log.e("ApiClient", "Error in resetPassword: ${e.message}")
             null
         }
     }
@@ -542,9 +542,9 @@ object ApiClient {
                 )
             )
 
-            Log.d("ApiClient", "✅ Recomendación obtenida: ${recommendation.roomName}")
+            Log.d("ApiClient", "   Recommendation obtained: ${recommendation.roomName}")
             Log.d("ApiClient", "   Score: ${(recommendation.compatibilityScore * 100).toInt()}%")
-            Log.d("ApiClient", "   Razones: ${recommendation.reasons.size}")
+            Log.d("ApiClient", "   Reasons: ${recommendation.reasons.size}")
             recommendation.reasons.forEachIndexed { index, reason ->
                 Log.d("ApiClient", "   ${index + 1}. $reason")
             }
@@ -577,10 +577,10 @@ object ApiClient {
             val recommendation = getRoomRecommendation(userId, preferences)
 
             if (recommendation != null) {
-                Log.d("ApiClient", "✓ 1 recomendación generada (top sala)")
+                Log.d("ApiClient", " 1 recommendation generated (top room)")
                 return@withContext listOf(recommendation)
             } else {
-                Log.e("ApiClient", "No se pudo obtener recomendación")
+                Log.e("ApiClient", "Not able to obtain recommendation")
                 return@withContext null
             }
 

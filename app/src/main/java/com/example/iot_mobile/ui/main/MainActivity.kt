@@ -49,7 +49,7 @@ class MainActivity : ComponentActivity() {
 
         if (deepLink != null && deepLink.scheme == "iotmobile") {
             resetToken = deepLink.lastPathSegment
-            Log.d("MainActivity", "Deep Link recibido con token: $resetToken")
+            Log.d("MainActivity", "Deep Link received with token: $resetToken")
         }
 
         setContent {

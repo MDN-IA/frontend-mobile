@@ -232,7 +232,7 @@ fun MainScreen(
                         verticalArrangement = Arrangement.Center
                     ) {
                         Text(
-                            text = errorMessage ?: "Error desconocido",
+                            text = errorMessage ?: "Unknown error",
                             color = Color(0xFFFF7043),
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Medium
@@ -273,7 +273,7 @@ fun MainScreen(
                                             rooms = fetchedRooms
                                             isLoading = false
                                         } ?: run {
-                                            errorMessage = "Error al obtener las habitaciones"
+                                            errorMessage = "Error obtaining rooms"
                                             isLoading = false
                                         }
                                     } catch (e: Exception) {
@@ -286,7 +286,7 @@ fun MainScreen(
                                 containerColor = Color(0xFF42A5F5)
                             )
                         ) {
-                            Text("Reintentar")
+                            Text("Retry")
                         }
                     }
                 }
@@ -298,7 +298,7 @@ fun MainScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "No hay habitaciones disponibles",
+                            text = "No rooms available",
                             color = Color(0xFF9E9E9E),
                             fontSize = 14.sp
                         )
