@@ -112,7 +112,7 @@ fun ForgotPasswordScreen(navController: NavController) {
                 placeholder = { Text("your@email.com") },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp),
+                    .heightIn(min = 56.dp),
                 singleLine = true,
                 enabled = !isLoading && successMessage == null,
                 shape = RoundedCornerShape(12.dp),
@@ -120,7 +120,9 @@ fun ForgotPasswordScreen(navController: NavController) {
                     focusedBorderColor = Color(0xFF42A5F5),
                     unfocusedBorderColor = Color(0xFFE0E0E0),
                     focusedLabelColor = Color(0xFF42A5F5),
-                    cursorColor = Color(0xFF42A5F5)
+                    cursorColor = Color(0xFF42A5F5),
+                    focusedTextColor = Color(0xFF212121),
+                    unfocusedTextColor = Color(0xFF212121)
                 )
             )
 

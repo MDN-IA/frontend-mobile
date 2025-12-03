@@ -154,7 +154,7 @@ fun ResetPasswordScreen(resetCode: String?, navController: NavController) {
             placeholder = { Text("Enter new password") },
             modifier = Modifier
                 .fillMaxWidth()
-                .height(56.dp),
+                .heightIn(min = 56.dp),
             singleLine = true,
             enabled = !isLoading && successMessage == null,
             visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
@@ -175,7 +175,9 @@ fun ResetPasswordScreen(resetCode: String?, navController: NavController) {
                 focusedBorderColor = Color(0xFF42A5F5),
                 unfocusedBorderColor = Color(0xFFE0E0E0),
                 focusedLabelColor = Color(0xFF42A5F5),
-                cursorColor = Color(0xFF42A5F5)
+                cursorColor = Color(0xFF42A5F5),
+                focusedTextColor = Color(0xFF212121),
+                unfocusedTextColor = Color(0xFF212121)
             )
         )
 
@@ -189,7 +191,7 @@ fun ResetPasswordScreen(resetCode: String?, navController: NavController) {
             placeholder = { Text("Confirm password") },
             modifier = Modifier
                 .fillMaxWidth()
-                .height(56.dp),
+                .heightIn(min = 56.dp),
             singleLine = true,
             enabled = !isLoading && successMessage == null,
             visualTransformation = if (showConfirmPassword) VisualTransformation.None else PasswordVisualTransformation(),
@@ -210,7 +212,9 @@ fun ResetPasswordScreen(resetCode: String?, navController: NavController) {
                 focusedBorderColor = Color(0xFF42A5F5),
                 unfocusedBorderColor = Color(0xFFE0E0E0),
                 focusedLabelColor = Color(0xFF42A5F5),
-                cursorColor = Color(0xFF42A5F5)
+                cursorColor = Color(0xFF42A5F5),
+                focusedTextColor = Color(0xFF212121),
+                unfocusedTextColor = Color(0xFF212121)
             )
         )
 
