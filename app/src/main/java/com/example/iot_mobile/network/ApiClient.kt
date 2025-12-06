@@ -28,8 +28,8 @@ object ApiClient {
             val responseCode = connection.responseCode
             val response = connection.inputStream.bufferedReader().readText()
 
-            println("Response code: $responseCode")
-            println("Response of server: $response")
+            println("Código de respuesta: $responseCode")
+            println("Respuesta del servidor: $response")
 
             return@withContext if (responseCode == HttpURLConnection.HTTP_OK) {
                 response
@@ -38,7 +38,7 @@ object ApiClient {
             }
         } catch (e: Exception) {
             e.printStackTrace()
-            println("Error to connect with backend: ${e.message}")
+            println("Error al conectar con el backend: ${e.message}")
             null
         }
     }
@@ -59,16 +59,16 @@ object ApiClient {
 
             return@withContext if (responseCode == HttpURLConnection.HTTP_OK) {
                 val response = connection.inputStream.bufferedReader().readText()
-                println("Response code: $responseCode")
-                println("Response of server (Room $roomId): $response")
+                println("Código de respuesta: $responseCode")
+                println("Respuesta del servidor (Room $roomId): $response")
                 response
             } else {
-                Log.e("ApiClient", "Error to get the room: code $responseCode")
+                Log.e("ApiClient", "Error al obtener habitación: código $responseCode")
                 null
             }
         } catch (e: Exception) {
             e.printStackTrace()
-            Log.e("ApiClient", "Error to connect with backend: ${e.message}")
+            Log.e("ApiClient", "Error al conectar con el backend: ${e.message}")
             null
         }
     }
@@ -80,37 +80,37 @@ object ApiClient {
      * @return Respuesta en formato JSON o `null` si hay error.
      */
     suspend fun post(endpoint: String, jsonBody: JSONObject): String? =
-    withContext(Dispatchers.IO) {
-        try {
-            val url = URL("$BASE_URL/$endpoint")
-            val connection = url.openConnection() as HttpURLConnection
-            connection.requestMethod = "POST"
-            connection.setRequestProperty("Content-Type", "application/json")
-            connection.doOutput = true
+        withContext(Dispatchers.IO) {
+            try {
+                val url = URL("$BASE_URL/$endpoint")
+                val connection = url.openConnection() as HttpURLConnection
+                connection.requestMethod = "POST"
+                connection.setRequestProperty("Content-Type", "application/json")
+                connection.doOutput = true
 
-            // Escribir el cuerpo de la petición
-            connection.outputStream.use { os ->
-                os.write(jsonBody.toString().toByteArray())
-                os.flush()
+                // Escribir el cuerpo de la petición
+                connection.outputStream.use { os ->
+                    os.write(jsonBody.toString().toByteArray())
+                    os.flush()
+                }
+
+                val responseCode = connection.responseCode
+                Log.d("ApiClient", "Código de respuesta: $responseCode")
+
+                return@withContext if (responseCode in 200..299) { // Acepta códigos 2XX
+                    connection.inputStream.bufferedReader()
+                        .use { it.readText() } // Lee la respuesta correctamente
+                } else {
+                    Log.e("ApiClient", "Error en la respuesta del servidor: código $responseCode")
+                    connection.errorStream?.bufferedReader()
+                        ?.use { it.readText() } // Leer el mensaje de error si lo hay
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                Log.e("ApiClient", "Error de conexión con el backend: ${e.message}")
+                null
             }
-
-            val responseCode = connection.responseCode
-            Log.d("ApiClient", "Response code: $responseCode")
-
-            return@withContext if (responseCode in 200..299) { // Acepta códigos 2XX
-                connection.inputStream.bufferedReader()
-                    .use { it.readText() } // Lee la respuesta correctamente
-            } else {
-                Log.e("ApiClient", "Error in the response from the server: code $responseCode")
-                connection.errorStream?.bufferedReader()
-                    ?.use { it.readText() } // Leer el mensaje de error si lo hay
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-            Log.e("ApiClient", "Error of conexion with backend: ${e.message}")
-            null
         }
-    }
 
     /**
      * Método para crear un nuevo usuario (registro).
@@ -148,20 +148,20 @@ object ApiClient {
             }
 
             val responseCode = connection.responseCode
-            Log.d("ApiClient", "CreateUser - Response code: $responseCode")
+            Log.d("ApiClient", "CreateUser - Código de respuesta: $responseCode")
 
             return@withContext if (responseCode == HttpURLConnection.HTTP_CREATED) {
                 val response = connection.inputStream.bufferedReader().use { it.readText() }
-                Log.d("ApiClient", "User created successfully: $response")
+                Log.d("ApiClient", "Usuario creado exitosamente: $response")
                 response
             } else {
                 val errorResponse = connection.errorStream?.bufferedReader()?.use { it.readText() }
-                Log.e("ApiClient", "Error creating user: code $responseCode - $errorResponse")
+                Log.e("ApiClient", "Error al crear usuario: código $responseCode - $errorResponse")
                 errorResponse // Retornar el mensaje de error para poder mostrarlo
             }
         } catch (e: Exception) {
             e.printStackTrace()
-            Log.e("ApiClient", "Error connecting to backend in createUser: ${e.message}")
+            Log.e("ApiClient", "Error al conectar con el backend en createUser: ${e.message}")
             null
         }
     }
@@ -192,20 +192,20 @@ object ApiClient {
             }
 
             val responseCode = connection.responseCode
-            Log.d("ApiClient", "Login - Code response: $responseCode")
+            Log.d("ApiClient", "Login - Código de respuesta: $responseCode")
 
             return@withContext if (responseCode == HttpURLConnection.HTTP_OK) {
                 val response = connection.inputStream.bufferedReader().use { it.readText() }
-                Log.d("ApiClient", "Login successful: $response")
+                Log.d("ApiClient", "Login exitoso: $response")
                 response
             } else {
                 val errorResponse = connection.errorStream?.bufferedReader()?.use { it.readText() }
-                Log.e("ApiClient", "Error in login: code $responseCode - $errorResponse")
+                Log.e("ApiClient", "Error en login: código $responseCode - $errorResponse")
                 null
             }
         } catch (e: Exception) {
             e.printStackTrace()
-            Log.e("ApiClient", "Error connecting to backend in login: ${e.message}")
+            Log.e("ApiClient", "Error al conectar con el backend en login: ${e.message}")
             null
         }
     }
@@ -231,20 +231,20 @@ object ApiClient {
             }
 
             val responseCode = connection.responseCode
-            Log.d("ApiClient", "UpdateUser - Code response: $responseCode")
+            Log.d("ApiClient", "UpdateUser - Código de respuesta: $responseCode")
 
             return@withContext if (responseCode == HttpURLConnection.HTTP_OK) {
                 val response = connection.inputStream.bufferedReader().use { it.readText() }
-                Log.d("ApiClient", "User updated successfully: $response")
+                Log.d("ApiClient", "Usuario actualizado exitosamente: $response")
                 response
             } else {
                 val errorResponse = connection.errorStream?.bufferedReader()?.use { it.readText() }
-                Log.e("ApiClient", "Error updating user: code $responseCode - $errorResponse")
+                Log.e("ApiClient", "Error al actualizar usuario: código $responseCode - $errorResponse")
                 null
             }
         } catch (e: Exception) {
             e.printStackTrace()
-            Log.e("ApiClient", "Error connecting to backend in updateUser: ${e.message}")
+            Log.e("ApiClient", "Error al conectar con el backend en updateUser: ${e.message}")
             null
         }
     }
@@ -262,20 +262,20 @@ object ApiClient {
             connection.setRequestProperty("Accept", "application/json")
 
             val responseCode = connection.responseCode
-            Log.d("ApiClient", "DeleteUser - Code response: $responseCode")
+            Log.d("ApiClient", "DeleteUser - Código de respuesta: $responseCode")
 
             return@withContext if (responseCode == HttpURLConnection.HTTP_OK) {
                 val response = connection.inputStream.bufferedReader().use { it.readText() }
-                Log.d("ApiClient", "User deleted successfully: $response")
+                Log.d("ApiClient", "Usuario eliminado exitosamente: $response")
                 response
             } else {
                 val errorResponse = connection.errorStream?.bufferedReader()?.use { it.readText() }
-                Log.e("ApiClient", "Error deleting user: code $responseCode - $errorResponse")
+                Log.e("ApiClient", "Error al eliminar usuario: código $responseCode - $errorResponse")
                 null
             }
         } catch (e: Exception) {
             e.printStackTrace()
-            Log.e("ApiClient", "Error connecting to backend in deleteUser: ${e.message}")
+            Log.e("ApiClient", "Error al conectar con el backend en deleteUser: ${e.message}")
             null
         }
     }
@@ -293,19 +293,19 @@ object ApiClient {
             connection.setRequestProperty("Accept", "image/png")
 
             val responseCode = connection.responseCode
-            Log.d("ApiClient", "GetQRImage - Code response: $responseCode")
+            Log.d("ApiClient", "GetQRImage - Código de respuesta: $responseCode")
 
             return@withContext if (responseCode == HttpURLConnection.HTTP_OK) {
                 val imageBytes = connection.inputStream.readBytes()
-                Log.d("ApiClient", "QR obtained successfully: ${imageBytes.size} bytes")
+                Log.d("ApiClient", "QR obtenido exitosamente: ${imageBytes.size} bytes")
                 imageBytes
             } else {
-                Log.e("ApiClient", "Error obtaining QR: code $responseCode")
+                Log.e("ApiClient", "Error al obtener QR: código $responseCode")
                 null
             }
         } catch (e: Exception) {
             e.printStackTrace()
-            Log.e("ApiClient", "Error connecting to backend in getQRImage: ${e.message}")
+            Log.e("ApiClient", "Error al conectar con el backend en getQRImage: ${e.message}")
             null
         }
     }
@@ -330,7 +330,7 @@ object ApiClient {
             }
 
             val responseCode = connection.responseCode
-            Log.d("ApiClient", "ForgotPassword - Code: $responseCode")
+            Log.d("ApiClient", "ForgotPassword - Código: $responseCode")
 
             return@withContext if (responseCode == HttpURLConnection.HTTP_OK) {
                 connection.inputStream.bufferedReader().use { it.readText() }
@@ -340,7 +340,7 @@ object ApiClient {
                 null
             }
         } catch (e: Exception) {
-            Log.e("ApiClient", "Error in forgotPassword: ${e.message}")
+            Log.e("ApiClient", "Error en forgotPassword: ${e.message}")
             null
         }
     }
@@ -362,7 +362,7 @@ object ApiClient {
                 null
             }
         } catch (e: Exception) {
-            Log.e("ApiClient", "Error in verifyResetToken: ${e.message}")
+            Log.e("ApiClient", "Error en verifyResetToken: ${e.message}")
             null
         }
     }
@@ -395,15 +395,15 @@ object ApiClient {
                 null
             }
         } catch (e: Exception) {
-            Log.e("ApiClient", "Error in resetPassword: ${e.message}")
+            Log.e("ApiClient", "Error en resetPassword: ${e.message}")
             null
         }
     }
 
-    
+
     /**
-    * Registrar entrada/salida en una habitación
-    */
+     * Registrar entrada/salida en una habitación
+     */
     suspend fun registerRoomAccess(userId: Int, roomCode: String): String? = withContext(Dispatchers.IO) {
         var connection: HttpURLConnection? = null
         try {
@@ -542,9 +542,9 @@ object ApiClient {
                 )
             )
 
-            Log.d("ApiClient", "   Recommendation obtained: ${recommendation.roomName}")
+            Log.d("ApiClient", "Recomendación obtenida: ${recommendation.roomName}")
             Log.d("ApiClient", "   Score: ${(recommendation.compatibilityScore * 100).toInt()}%")
-            Log.d("ApiClient", "   Reasons: ${recommendation.reasons.size}")
+            Log.d("ApiClient", "   Razones: ${recommendation.reasons.size}")
             recommendation.reasons.forEachIndexed { index, reason ->
                 Log.d("ApiClient", "   ${index + 1}. $reason")
             }
@@ -577,10 +577,10 @@ object ApiClient {
             val recommendation = getRoomRecommendation(userId, preferences)
 
             if (recommendation != null) {
-                Log.d("ApiClient", " 1 recommendation generated (top room)")
+                Log.d("ApiClient", "✓ 1 recomendación generada (top sala)")
                 return@withContext listOf(recommendation)
             } else {
-                Log.e("ApiClient", "Not able to obtain recommendation")
+                Log.e("ApiClient", "No se pudo obtener recomendación")
                 return@withContext null
             }
 
@@ -590,10 +590,206 @@ object ApiClient {
             null
         }
     }
+
+    /**
+     * Enviar feedback sobre una recomendación para entrenar el modelo ML
+     * @param userId ID del usuario
+     * @param roomId ID de la sala recomendada
+     * @param rating Calificación de 1 a 5
+     * @param actualUsage Tiempo real de uso en minutos (opcional)
+     * @param satisfaction Nivel de satisfacción: "satisfied", "neutral", "unsatisfied" (opcional)
+     * @return Respuesta del servidor con métricas de entrenamiento
+     */
+    suspend fun sendRecommendationFeedback(
+        userId: Int,
+        roomId: Int,
+        rating: Int,
+        actualUsage: Int? = null,
+        satisfaction: String? = null
+    ): String? = withContext(Dispatchers.IO) {
+        try {
+            Log.d("ApiClient", "==================== SEND RECOMMENDATION FEEDBACK ====================")
+            Log.d("ApiClient", "UserId: $userId")
+            Log.d("ApiClient", "RoomId: $roomId")
+            Log.d("ApiClient", "Rating: $rating/5")
+            Log.d("ApiClient", "Actual Usage: ${actualUsage ?: "N/A"} minutes")
+            Log.d("ApiClient", "Satisfaction: ${satisfaction ?: "N/A"}")
+
+            val requestBody = JSONObject().apply {
+                put("userId", userId)
+                put("roomId", roomId)
+                put("rating", rating)
+                actualUsage?.let { put("actualUsage", it) }
+                satisfaction?.let { put("satisfaction", it) }
+            }
+
+            val response = post("recommendations/train", requestBody)
+
+            if (response != null) {
+                val jsonResponse = JSONObject(response)
+                if (jsonResponse.optBoolean("success", false)) {
+                    Log.d("ApiClient", "Feedback enviado correctamente")
+                    val metrics = jsonResponse.optJSONObject("metrics")
+                    if (metrics != null) {
+                        Log.d("ApiClient", "Mejora del modelo: ${metrics.optDouble("improvement", 0.0) * 100}%")
+                    }
+                } else {
+                    Log.e("ApiClient", "Error en feedback: ${jsonResponse.optString("message")}")
+                }
+            }
+
+            Log.d("ApiClient", "==================== END FEEDBACK ====================")
+            return@withContext response
+
+        } catch (e: JSONException) {
+            Log.e("ApiClient", "Error parsing JSON in sendRecommendationFeedback: ${e.message}")
+            e.printStackTrace()
+            null
+        } catch (e: Exception) {
+            Log.e("ApiClient", "Exception in sendRecommendationFeedback: ${e.message}")
+            e.printStackTrace()
+            null
+        }
+    }
+
+    /**
+     * Obtener historial de accesos del usuario
+     * @param userId ID del usuario
+     * @param limit Número máximo de registros a obtener (por defecto 50)
+     * @return Lista de entradas de historial o null si hay error
+     */
+    suspend fun getUserHistory(
+        userId: Int,
+        limit: Int = 50
+    ): List<HistoryEntry>? = withContext(Dispatchers.IO) {
+        try {
+            Log.d("ApiClient", "==================== GET USER HISTORY ====================")
+            Log.d("ApiClient", "UserId: $userId")
+            Log.d("ApiClient", "Limit: $limit")
+
+            val response = get("users/$userId/history?limit=$limit")
+
+            if (response == null) {
+                Log.e("ApiClient", "Response is null")
+                return@withContext null
+            }
+
+            val jsonResponse = JSONObject(response)
+
+            if (!jsonResponse.optBoolean("success", false)) {
+                Log.e("ApiClient", "API returned success: false")
+                return@withContext null
+            }
+
+            val historyArray = jsonResponse.getJSONArray("history")
+            val historyList = mutableListOf<HistoryEntry>()
+
+            for (i in 0 until historyArray.length()) {
+                val entry = historyArray.getJSONObject(i)
+                historyList.add(
+                    HistoryEntry(
+                        id = entry.getInt("id"),
+                        action = entry.getString("action"),
+                        timestamp = entry.getString("timestamp"),
+                        duration = entry.optInt("duration", 0),
+                        roomId = entry.getInt("roomId"),
+                        roomName = entry.getString("roomName"),
+                        roomCode = entry.getString("roomCode"),
+                        temperature = entry.optDouble("temperature", 0.0),
+                        light = entry.optDouble("light", 0.0),
+                        humidity = entry.optDouble("humidity", 0.0)
+                    )
+                )
+            }
+
+            Log.d("ApiClient", "Historial obtenido: ${historyList.size} entradas")
+            Log.d("ApiClient", "==================== END HISTORY ====================")
+
+            return@withContext historyList
+
+        } catch (e: JSONException) {
+            Log.e("ApiClient", "Error parsing JSON in getUserHistory: ${e.message}")
+            e.printStackTrace()
+            null
+        } catch (e: Exception) {
+            Log.e("ApiClient", "Exception in getUserHistory: ${e.message}")
+            e.printStackTrace()
+            null
+        }
+    }
+
+    /**
+     * Obtener estadísticas de uso del usuario
+     * @param userId ID del usuario
+     * @return Estadísticas del usuario o null si hay error
+     */
+    suspend fun getUserStats(userId: Int): UserStats? = withContext(Dispatchers.IO) {
+        try {
+            Log.d("ApiClient", "==================== GET USER STATS ====================")
+            Log.d("ApiClient", "UserId: $userId")
+
+            val response = get("users/$userId/stats")
+
+            if (response == null) {
+                Log.e("ApiClient", "Response is null")
+                return@withContext null
+            }
+
+            val jsonResponse = JSONObject(response)
+
+            if (!jsonResponse.optBoolean("success", false)) {
+                Log.e("ApiClient", "API returned success: false")
+                return@withContext null
+            }
+
+            val statsJson = jsonResponse.getJSONObject("stats")
+
+            // Parsear salas más visitadas
+            val mostVisitedArray = statsJson.getJSONArray("mostVisitedRooms")
+            val mostVisitedRooms = mutableListOf<MostVisitedRoom>()
+
+            for (i in 0 until mostVisitedArray.length()) {
+                val room = mostVisitedArray.getJSONObject(i)
+                mostVisitedRooms.add(
+                    MostVisitedRoom(
+                        id = room.getInt("id"),
+                        name = room.getString("name"),
+                        code = room.getString("code"),
+                        visitCount = room.getInt("visitCount")
+                    )
+                )
+            }
+
+            val stats = UserStats(
+                totalVisits = statsJson.getInt("totalVisits"),
+                avgDuration = statsJson.getDouble("avgDuration"),
+                mostVisitedRooms = mostVisitedRooms,
+                preferredHour = statsJson.getInt("preferredHour")
+            )
+
+            Log.d("ApiClient", "Estadísticas obtenidas:")
+            Log.d("ApiClient", "   Total visitas: ${stats.totalVisits}")
+            Log.d("ApiClient", "   Duración promedio: ${stats.avgDuration} min")
+            Log.d("ApiClient", "   Hora preferida: ${stats.preferredHour}:00")
+            Log.d("ApiClient", "   Salas más visitadas: ${stats.mostVisitedRooms.size}")
+            Log.d("ApiClient", "==================== END STATS ====================")
+
+            return@withContext stats
+
+        } catch (e: JSONException) {
+            Log.e("ApiClient", "Error parsing JSON in getUserStats: ${e.message}")
+            e.printStackTrace()
+            null
+        } catch (e: Exception) {
+            Log.e("ApiClient", "Exception in getUserStats: ${e.message}")
+            e.printStackTrace()
+            null
+        }
+    }
 }
 
 // ============================================================================
-// MODELOS DE DATOS - Ahora en el package correcto (network)
+// MODELOS DE DATOS
 // ============================================================================
 
 /**

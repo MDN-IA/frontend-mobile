@@ -83,7 +83,122 @@ fun MainScreen(
     var activeRoomCode by remember { mutableStateOf(sessionManager.getActiveRoomCode()) }
     var activeRoomName by remember { mutableStateOf<String?>(null) }
 
+    // Estados para feedback de salas recomendadas por IA
+    var showFeedbackDialog by remember { mutableStateOf(false) }
+    var feedbackRoomId by remember { mutableStateOf<Int?>(null) }
+    var feedbackDuration by remember { mutableStateOf(0) }
+    var feedbackRoomName by remember { mutableStateOf("") }
+
     val coroutineScope = rememberCoroutineScope()
+
+    // Verificación inicial: si el usuario ya está en una sala al abrir la app, verificar si debe continuar tracking
+    LaunchedEffect(Unit) {
+        delay(500) // Esperar a que se carguen los datos iniciales
+
+        android.util.Log.d("MainScreen", "🔍 Initial check - User in room: $activeRoomCode")
+
+        if (activeRoomCode != null && rooms.isNotEmpty()) {
+            val currentRoom = rooms.find { it.code == activeRoomCode }
+            currentRoom?.let { room ->
+                val trackedRoomId = sessionManager.getTrackedAIRoomId()
+                val candidateRoomId = sessionManager.getAICandidateRoomId()
+
+                android.util.Log.d("MainScreen", "🔍 Initial state - CurrentRoom: ${room.id}, TrackedRoom: $trackedRoomId, Candidate: $candidateRoomId")
+
+                // Si el usuario está en una sala candidata pero no hay tracking activo, iniciarlo
+                if (candidateRoomId == room.id && trackedRoomId == -1) {
+                    android.util.Log.d("MainScreen", "🎯 User already in AI candidate room but tracking not started. Starting now...")
+                    sessionManager.startAIRoomTracking(room.id)
+                } else if (trackedRoomId == room.id) {
+                    android.util.Log.d("MainScreen", "✅ Tracking already active for current room. Will continue counting time.")
+                }
+            }
+        }
+    }
+
+    // Detectar cuando el usuario entra/sale de salas y manejar tracking de IA
+    LaunchedEffect(activeRoomCode, rooms) {
+        if (rooms.isEmpty()) return@LaunchedEffect
+
+        android.util.Log.d("MainScreen", "🔄 activeRoomCode changed to: $activeRoomCode")
+
+        if (activeRoomCode != null) {
+            // Usuario ENTRÓ a una sala
+            val currentRoom = rooms.find { it.code == activeRoomCode }
+            currentRoom?.let { room ->
+                val candidateRoomId = sessionManager.getAICandidateRoomId()
+                val trackedRoomId = sessionManager.getTrackedAIRoomId()
+
+                android.util.Log.d("MainScreen", "👤 User entered room: ${room.name} (id: ${room.id}). Candidate: $candidateRoomId, Tracked: $trackedRoomId")
+
+                // Solo iniciar tracking si es sala candidata Y no hay tracking activo
+                if (candidateRoomId == room.id && trackedRoomId == -1) {
+                    // El usuario entró físicamente a la sala candidata de IA
+                    android.util.Log.d("MainScreen", "🎯 User entered AI candidate room! Starting tracking...")
+                    sessionManager.startAIRoomTracking(room.id)
+                } else if (trackedRoomId == room.id) {
+                    android.util.Log.d("MainScreen", "✅ Already tracking this room, continuing...")
+                } else {
+                    android.util.Log.d("MainScreen", "ℹ️ User entered non-AI room or different room")
+                }
+            }
+        } else {
+            // Usuario SALIÓ de una sala (activeRoomCode = null)
+            val trackedRoomId = sessionManager.getTrackedAIRoomId()
+            android.util.Log.d("MainScreen", "🚪 User exited room. Checking AI tracking... TrackedRoomId: $trackedRoomId")
+
+            if (trackedRoomId != -1) {
+                // Había una sala con tracking de IA, finalizar tracking y mostrar feedback
+                android.util.Log.d("MainScreen", "🎯 Finishing AI tracking for room $trackedRoomId")
+
+                val trackingInfo = sessionManager.finishAIRoomTracking()
+                trackingInfo?.let { (roomId, duration) ->
+                    android.util.Log.d("MainScreen", "✅ Tracking finished! RoomId: $roomId, Duration: $duration min")
+
+                    val roomName = rooms.find { it.id == roomId }?.name ?: "Room"
+                    android.util.Log.d("MainScreen", "🏠 Room name: $roomName")
+
+                    feedbackRoomId = roomId
+                    feedbackDuration = duration
+                    feedbackRoomName = roomName
+                    showFeedbackDialog = true
+
+                    android.util.Log.d("MainScreen", "🎯 Feedback dialog activated! showFeedbackDialog: $showFeedbackDialog")
+                } ?: run {
+                    android.util.Log.e("MainScreen", "❌ Failed to finish tracking - trackingInfo is null")
+                }
+            } else {
+                android.util.Log.d("MainScreen", "ℹ️ No AI tracking active for exited room")
+            }
+        }
+    }
+
+    // También verificar si hay feedback pendiente al cargar la pantalla (por si volvió más tarde)
+    LaunchedEffect(rooms) {
+        if (rooms.isNotEmpty()) {
+            android.util.Log.d("MainScreen", "🔍 Checking for pending feedback on room load...")
+            val pendingFeedback = sessionManager.getPendingFeedback()
+
+            android.util.Log.d("MainScreen", "📊 Pending feedback: $pendingFeedback")
+
+            pendingFeedback?.let { (roomId, duration) ->
+                android.util.Log.d("MainScreen", "✅ Found pending feedback! RoomId: $roomId, Duration: $duration min")
+
+                val roomName = rooms.find { it.id == roomId }?.name ?: "Room"
+
+                android.util.Log.d("MainScreen", "🏠 Room name: $roomName")
+
+                feedbackRoomId = roomId
+                feedbackDuration = duration
+                feedbackRoomName = roomName
+                showFeedbackDialog = true
+
+                android.util.Log.d("MainScreen", "🎯 Feedback dialog should now show! showFeedbackDialog: $showFeedbackDialog")
+            } ?: run {
+                android.util.Log.d("MainScreen", "ℹ️ No pending feedback found")
+            }
+        }
+    }
 
     // Cargar y refrescar habitaciones desde el backend periódicamente
 
@@ -370,6 +485,50 @@ fun MainScreen(
             }
         }
     }
+
+    // ========== DIÁLOGO DE FEEDBACK PARA SALAS RECOMENDADAS POR IA ==========
+    android.util.Log.d("MainScreen", "🎨 Rendering MainScreen - showFeedbackDialog: $showFeedbackDialog, feedbackRoomId: $feedbackRoomId")
+
+    if (showFeedbackDialog && feedbackRoomId != null) {
+        android.util.Log.d("MainScreen", "✅ SHOWING FEEDBACK DIALOG in MainScreen - Room: $feedbackRoomName, Duration: $feedbackDuration min")
+
+        FeedbackDialogForRooms(
+            roomName = feedbackRoomName,
+            durationMinutes = feedbackDuration,
+            onDismiss = {
+                android.util.Log.d("MainScreen", "❌ Feedback dialog dismissed")
+                showFeedbackDialog = false
+                sessionManager.clearPendingFeedback()
+            },
+            onSubmit = { rating, satisfaction ->
+                coroutineScope.launch {
+                    try {
+                        android.util.Log.d("MainScreen", "Submitting feedback for room $feedbackRoomId: rating=$rating, duration=$feedbackDuration, satisfaction=$satisfaction")
+
+                        val response = ApiClient.sendRecommendationFeedback(
+                            userId = sessionManager.getUserId(),
+                            roomId = feedbackRoomId!!,
+                            rating = rating,
+                            actualUsage = feedbackDuration,
+                            satisfaction = satisfaction
+                        )
+
+                        if (response != null) {
+                            android.util.Log.d("MainScreen", "Feedback submitted successfully: $response")
+                        } else {
+                            android.util.Log.e("MainScreen", "Failed to submit feedback")
+                        }
+
+                        sessionManager.clearPendingFeedback()
+                        showFeedbackDialog = false
+                    } catch (e: Exception) {
+                        android.util.Log.e("MainScreen", "Error submitting feedback: ${e.message}", e)
+                        showFeedbackDialog = false
+                    }
+                }
+            }
+        )
+    }
 }
 
 @Composable
@@ -575,4 +734,178 @@ fun RoomCard(
             }
         }
     }
+}
+
+/**
+ * Diálogo de feedback para salas recomendadas por IA
+ */
+@Composable
+fun FeedbackDialogForRooms(
+    roomName: String,
+    durationMinutes: Int,
+    onDismiss: () -> Unit,
+    onSubmit: (rating: Int, satisfaction: String) -> Unit
+) {
+    var selectedRating by remember { mutableStateOf(3) }
+    var selectedSatisfaction by remember { mutableStateOf("neutral") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = Color.White,
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(20.dp),
+        title = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "How was your experience?",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF212121),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = roomName,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFF42A5F5),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // Mostrar duración
+                Surface(
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp),
+                    color = Color(0xFFF5F5F5)
+                ) {
+                    Text(
+                        text = "Duration: $durationMinutes ${if (durationMinutes == 1) "minute" else "minutes"}",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color(0xFF616161),
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Rating con estrellas
+                Text(
+                    text = "Rate this room",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFF424242),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    for (i in 1..5) {
+                        IconButton(
+                            onClick = { selectedRating = i },
+                            modifier = Modifier.size(44.dp)
+                        ) {
+                            Text(
+                                text = if (i <= selectedRating) "★" else "☆",
+                                fontSize = 32.sp,
+                                color = if (i <= selectedRating) Color(0xFFFFB300) else Color(0xFFE0E0E0)
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Satisfaction level
+                Text(
+                    text = "Overall satisfaction",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFF424242),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    listOf(
+                        "poor" to "😞",
+                        "neutral" to "😐",
+                        "good" to "😊"
+                    ).forEach { (level, emoji) ->
+                        Surface(
+                            onClick = { selectedSatisfaction = level },
+                            modifier = Modifier.weight(1f),
+                            shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+                            color = if (selectedSatisfaction == level) Color(0xFF42A5F5).copy(alpha = 0.15f) else Color(0xFFF5F5F5),
+                            border = BorderStroke(
+                                width = if (selectedSatisfaction == level) 2.dp else 1.dp,
+                                color = if (selectedSatisfaction == level) Color(0xFF42A5F5) else Color(0xFFE0E0E0)
+                            )
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(vertical = 12.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    text = emoji,
+                                    fontSize = 28.sp
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = level.replaceFirstChar { it.uppercase() },
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = if (selectedSatisfaction == level) Color(0xFF42A5F5) else Color(0xFF757575)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onSubmit(selectedRating, selectedSatisfaction) },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF42A5F5)
+                ),
+                shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = "Submit Feedback",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(vertical = 4.dp)
+                )
+            }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = onDismiss,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = "Skip",
+                    fontSize = 14.sp,
+                    color = Color(0xFF757575)
+                )
+            }
+        }
+    )
 }

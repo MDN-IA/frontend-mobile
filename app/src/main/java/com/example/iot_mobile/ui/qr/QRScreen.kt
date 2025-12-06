@@ -199,6 +199,12 @@ fun QRScannerView() {
     var isProcessing by remember { mutableStateOf(false) }
     var accessResult by remember { mutableStateOf<AccessResult?>(null) }
 
+    // Estados para feedback de salas recomendadas por IA
+    var showFeedbackDialog by remember { mutableStateOf(false) }
+    var feedbackRoomId by remember { mutableStateOf<Int?>(null) }
+    var feedbackDuration by remember { mutableStateOf(0) }
+    var feedbackRoomName by remember { mutableStateOf("") }
+
     // Cargar salas disponibles
     LaunchedEffect(Unit) {
         scope.launch {
@@ -764,6 +770,60 @@ fun QRScannerView() {
                                             )
 
                                             Log.d("QRScannerView", "AccessResult created: success=$success, action=$action")
+
+                                            // === TRACKING DE SALAS RECOMENDADAS POR IA ===
+                                            Log.d("QRScannerView", "🔍 Checking AI tracking - Success: $success, Action: $action, SelectedRoomId: $selectedRoomId")
+
+                                            if (success) {
+                                                when (action) {
+                                                    "ENTER" -> {
+                                                        // Verificar si esta sala es candidata de IA (usuario la vio desde recomendaciones)
+                                                        selectedRoomId?.let { roomId ->
+                                                            val candidateRoomId = sessionManager.getAICandidateRoomId()
+                                                            Log.d("QRScannerView", "🔍 ENTER - RoomId: $roomId, Candidate: $candidateRoomId")
+
+                                                            if (candidateRoomId == roomId) {
+                                                                // Esta sala fue vista desde recomendaciones de IA, iniciar tracking
+                                                                sessionManager.startAIRoomTracking(roomId)
+                                                                Log.d("QRScannerView", "✅ Started AI room tracking for room $roomId (from AI recommendation)")
+                                                            } else {
+                                                                Log.d("QRScannerView", "❌ Room $roomId entered but not from AI recommendations (candidate: $candidateRoomId)")
+                                                            }
+                                                        }
+                                                    }
+                                                    "EXIT" -> {
+                                                        // Verificar si está saliendo de una sala con tracking de IA activo
+                                                        selectedRoomId?.let { roomId ->
+                                                            val trackedRoomId = sessionManager.getTrackedAIRoomId()
+                                                            val isTracked = sessionManager.isInAIRecommendedRoom(roomId)
+
+                                                            Log.d("QRScannerView", "🔍 EXIT - RoomId: $roomId, TrackedRoomId: $trackedRoomId, IsTracked: $isTracked")
+
+                                                            if (isTracked) {
+                                                                Log.d("QRScannerView", "🎯 User is exiting AI tracked room! Preparing feedback...")
+                                                                val trackingInfo = sessionManager.finishAIRoomTracking()
+
+                                                                Log.d("QRScannerView", "📊 Tracking info: $trackingInfo")
+
+                                                                trackingInfo?.let { (trackedId, duration) ->
+                                                                    feedbackRoomId = trackedId
+                                                                    feedbackDuration = duration
+                                                                    feedbackRoomName = json.optString("roomName", "Room")
+                                                                    showFeedbackDialog = true
+                                                                    Log.d("QRScannerView", "✅ EXIT - Feedback dialog activated! RoomId: $trackedId, Duration: $duration min, RoomName: $feedbackRoomName")
+                                                                    Log.d("QRScannerView", "✅ showFeedbackDialog is now: $showFeedbackDialog")
+                                                                } ?: run {
+                                                                    Log.e("QRScannerView", "❌ Tracking info was NULL!")
+                                                                }
+                                                            } else {
+                                                                Log.d("QRScannerView", "ℹ️ Room $roomId exit but not tracked by AI (no feedback needed)")
+                                                            }
+                                                        } ?: run {
+                                                            Log.e("QRScannerView", "❌ EXIT - selectedRoomId is NULL!")
+                                                        }
+                                                    }
+                                                }
+                                            }
                                         } catch (e: Exception) {
                                             Log.e("QRScannerView", "ERROR parsing JSON: ${e.message}")
                                             Log.e("QRScannerView", "Response text: $result")
@@ -896,6 +956,50 @@ fun QRScannerView() {
                 )
             }
         }
+    }
+
+    // ========== DIÁLOGO DE FEEDBACK PARA SALAS RECOMENDADAS POR IA ==========
+    Log.d("QRScannerView", "🎨 Rendering - showFeedbackDialog: $showFeedbackDialog, feedbackRoomId: $feedbackRoomId")
+
+    if (showFeedbackDialog && feedbackRoomId != null) {
+        Log.d("QRScannerView", "✅ SHOWING FEEDBACK DIALOG - Room: $feedbackRoomName, Duration: $feedbackDuration min")
+
+        FeedbackDialog(
+            roomName = feedbackRoomName,
+            durationMinutes = feedbackDuration,
+            onDismiss = {
+                Log.d("QRScannerView", "❌ Feedback dialog dismissed")
+                showFeedbackDialog = false
+                sessionManager.clearPendingFeedback()
+            },
+            onSubmit = { rating, satisfaction ->
+                scope.launch {
+                    try {
+                        Log.d("QRScannerView", "Submitting feedback for room $feedbackRoomId: rating=$rating, duration=$feedbackDuration, satisfaction=$satisfaction")
+
+                        val response = ApiClient.sendRecommendationFeedback(
+                            userId = sessionManager.getUserId(),
+                            roomId = feedbackRoomId!!,
+                            rating = rating,
+                            actualUsage = feedbackDuration,
+                            satisfaction = satisfaction
+                        )
+
+                        if (response != null) {
+                            Log.d("QRScannerView", "Feedback submitted successfully: $response")
+                        } else {
+                            Log.e("QRScannerView", "Failed to submit feedback")
+                        }
+
+                        sessionManager.clearPendingFeedback()
+                        showFeedbackDialog = false
+                    } catch (e: Exception) {
+                        Log.e("QRScannerView", "Error submitting feedback: ${e.message}", e)
+                        showFeedbackDialog = false
+                    }
+                }
+            }
+        )
     }
 }
 }
@@ -1109,28 +1213,205 @@ private fun extractUserIdFromQR(qrCode: String): String? {
     return result
 }
 
+
+/**
+ * Diálogo de feedback para salas recomendadas por IA
+ */
+@Composable
+fun FeedbackDialog(
+    roomName: String,
+    durationMinutes: Int,
+    onDismiss: () -> Unit,
+    onSubmit: (rating: Int, satisfaction: String) -> Unit
+) {
+    var selectedRating by remember { mutableStateOf(3) }
+    var selectedSatisfaction by remember { mutableStateOf("neutral") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = Color.White,
+        shape = RoundedCornerShape(20.dp),
+        title = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "How was your experience?",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF212121),
+                    textAlign = TextAlign.Center
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = roomName,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFF42A5F5),
+                    textAlign = TextAlign.Center
+                )
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // Mostrar duración
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = Color(0xFFF5F5F5)
+                ) {
+                    Text(
+                        text = "Duration: $durationMinutes ${if (durationMinutes == 1) "minute" else "minutes"}",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color(0xFF616161),
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Rating con estrellas
+                Text(
+                    text = "Rate this room",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFF424242),
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    for (i in 1..5) {
+                        IconButton(
+                            onClick = { selectedRating = i },
+                            modifier = Modifier.size(44.dp)
+                        ) {
+                            Text(
+                                text = if (i <= selectedRating) "★" else "☆",
+                                fontSize = 32.sp,
+                                color = if (i <= selectedRating) Color(0xFFFFB300) else Color(0xFFE0E0E0)
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Satisfaction level
+                Text(
+                    text = "Overall satisfaction",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFF424242),
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    listOf(
+                        "poor" to "😞",
+                        "neutral" to "😐",
+                        "good" to "😊"
+                    ).forEach { (level, emoji) ->
+                        Surface(
+                            onClick = { selectedSatisfaction = level },
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(12.dp),
+                            color = if (selectedSatisfaction == level) Color(0xFF42A5F5).copy(alpha = 0.15f) else Color(0xFFF5F5F5),
+                            border = BorderStroke(
+                                width = if (selectedSatisfaction == level) 2.dp else 1.dp,
+                                color = if (selectedSatisfaction == level) Color(0xFF42A5F5) else Color(0xFFE0E0E0)
+                            )
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(vertical = 12.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    text = emoji,
+                                    fontSize = 28.sp
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = level.replaceFirstChar { it.uppercase() },
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = if (selectedSatisfaction == level) Color(0xFF42A5F5) else Color(0xFF757575)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onSubmit(selectedRating, selectedSatisfaction) },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF42A5F5)
+                ),
+                shape = RoundedCornerShape(10.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = "Submit Feedback",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(vertical = 4.dp)
+                )
+            }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = onDismiss,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = "Skip",
+                    fontSize = 14.sp,
+                    color = Color(0xFF757575)
+                )
+            }
+        }
+    )
+}
+
 @Composable
 fun QRDisplayView(userId: Int, userName: String) {
-    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     var qrImageBitmap by remember { mutableStateOf<Bitmap?>(null) }
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(userId) {
-        isLoading = true
-        try {
-            val imageBytes = ApiClient.getQRImage(userId)
-            if (imageBytes != null) {
-                qrImageBitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
-                errorMessage = null
-            } else {
-                errorMessage = "Error obtaining QR image"
+        scope.launch {
+            isLoading = true
+            try {
+                val imageBytes = ApiClient.getQRImage(userId)
+                if (imageBytes != null) {
+                    qrImageBitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
+                    errorMessage = null
+                } else {
+                    errorMessage = "Error obtaining QR image"
+                }
+            } catch (e: Exception) {
+                errorMessage = "Error: ${e.message}"
+                Log.e("QRDisplayView", "Error loading QR", e)
+            } finally {
+                isLoading = false
             }
-        } catch (e: Exception) {
-            errorMessage = "Error: ${e.message}"
-            Log.e("QRDisplayView", "Error loading QR", e)
-        } finally {
-            isLoading = false
         }
     }
 

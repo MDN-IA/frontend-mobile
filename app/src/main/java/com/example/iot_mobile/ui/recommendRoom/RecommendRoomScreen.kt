@@ -25,6 +25,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun RecommendationScreen(navController: NavHostController) {
     val context = LocalContext.current
+    val sessionManager = remember { SessionManager(context) }
     var recommendations by remember { mutableStateOf<List<RoomRecommendation>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var userPreferences by remember { mutableStateOf(UserPreferences()) }
@@ -157,7 +158,11 @@ fun RecommendationScreen(navController: NavHostController) {
                     recommendations.forEach { rec ->
                         RecommendationCard(
                             recommendation = rec,
+                            sessionManager = sessionManager,
                             onSelectRoom = { roomId ->
+                                // Marcar esta sala como candidata para tracking de IA
+                                // El tracking real comenzará cuando haga ENTER via QR
+                                sessionManager.setAICandidateRoom(roomId)
                                 navController.navigate("room_details/$roomId")
                             }
                         )
@@ -173,6 +178,7 @@ fun RecommendationScreen(navController: NavHostController) {
 @Composable
 fun RecommendationCard(
     recommendation: RoomRecommendation,
+    sessionManager: SessionManager,
     onSelectRoom: (Int) -> Unit
 ) {
     Surface(
@@ -365,54 +371,6 @@ fun PreferencesPanel(
                         border = FilterChipDefaults.filterChipBorder(
                             enabled = true,
                             selected = preferences.preferredCapacity == size,
-                            borderColor = Color.Transparent,
-                            selectedBorderColor = Color.Transparent
-                        ),
-                        shape = RoundedCornerShape(10.dp)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Time slot preference
-            Text(
-                text = "PREFERRED TIME",
-                fontSize = 10.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = Color(0xFF9E9E9E),
-                letterSpacing = 1.sp
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                listOf("morning", "afternoon", "evening").forEach { time ->
-                    FilterChip(
-                        selected = preferences.preferredTimeSlot == time,
-                        onClick = {
-                            onPreferencesChange(preferences.copy(preferredTimeSlot = time))
-                        },
-                        label = {
-                            Text(
-                                text = time.replaceFirstChar { it.uppercase() },
-                                fontSize = 13.sp,
-                                fontWeight = if (preferences.preferredTimeSlot == time) FontWeight.SemiBold else FontWeight.Normal,
-                                letterSpacing = 0.2.sp
-                            )
-                        },
-                        colors = FilterChipDefaults.filterChipColors(
-                            containerColor = Color(0xFFF8F8F8),
-                            selectedContainerColor = Color(0xFF1A1A1A),
-                            labelColor = Color(0xFF757575),
-                            selectedLabelColor = Color.White
-                        ),
-                        border = FilterChipDefaults.filterChipBorder(
-                            enabled = true,
-                            selected = preferences.preferredTimeSlot == time,
                             borderColor = Color.Transparent,
                             selectedBorderColor = Color.Transparent
                         ),
