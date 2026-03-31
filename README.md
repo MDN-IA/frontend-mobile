@@ -12,7 +12,9 @@ The application empowers librarians and facility managers to:
 - Monitor temperature, humidity, and occupancy levels in real-time
 - Receive AI-powered recommendations
 - Track historical data and analyze trends
-  
+
+[Presentation slides](ROOMSENSE.pptx)
+
 ## Key Features
 
 ### Mobile Application (Android)
